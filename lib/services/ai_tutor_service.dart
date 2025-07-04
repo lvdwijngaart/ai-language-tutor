@@ -24,9 +24,18 @@ class AILanguageTutorService {
   // 3. Add rate limiting and usage monitoring
 
   // System prompt for conversational responses (fast, simple)
-  static String _buildConversationalPrompt(Language targetLanguage, ProficiencyLevel proficiencyLevel) {
+  static String _buildInstructionPrompt(Language targetLanguage, ProficiencyLevel proficiencyLevel) {
     return '''
-      
+      You are an AI language tutor for $targetLanguage. 
+
+      Respond naturally in $targetLanguage appropriate for a $proficiencyLevel level learner. 
+
+      - Keep responses to 1-3 sentences maximum. 
+      - Be conversational and engaging. 
+      - Ask follow-up questions to maintain the dialogue. 
+      - Provide gentle corrections when needed. 
+      - Use simple vocabulary for beginners, more complex for intermediate learners and include idiomatic language for advanced learners. 
+      - Be encouraging and supportive. 
     ''';
   }
 
@@ -52,11 +61,6 @@ class AILanguageTutorService {
 
       final messages = <Map<String, String>>[];
       String role = message.isUserMessage ? 'user' : 'system';
-
-      messages.add({
-        'role': role,
-        'content': _buildConversationalPrompt(targetLanguage, proficiencyLevel)
-      });
 
       final ChatMessage conversationalResponse = await _getConversationalResponse(
         userMessage: message, 
@@ -101,7 +105,16 @@ class AILanguageTutorService {
   }) async {
     // Build conversational system prompt
     final messages = <Map<String, String>>[];
-    
+
+    messages.add({
+      'role': 'system',
+      'content': _buildInstructionPrompt(targetLanguage, proficiencyLevel)
+    });
+
+    // TODO: Include chat history
+
+
+    // Add current User Message   
     messages.add({
         'role': 'user',
         'content': userMessage.text.trim()
@@ -121,6 +134,74 @@ class AILanguageTutorService {
         'temperature': 0.7,
         'presence_penalty': 0.1,
         'frequency_penalty': 0.1,
+        'tools': [
+          {
+            "type": "function",
+            "function": {
+              "name": "analyze_language_response",
+              "description": "Analyzes a message in the target language in detail and provides feedback per sentence.",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "originalText": {"type": "string"},
+                  "sentences": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "text": {"type": "string"},
+                        "startIndex": {"type": "integer"},
+                        "endIndex": {"type": "integer"},
+                        "contextualMeaning": {"type": "string"},
+                        "mistakes": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "error": {"type": "string"},
+                              "correction": {"type": "string"},
+                              "explanation": {"type": "string"}
+                            },
+                            "required": ["error", "correction", "explanation"]
+                          }
+                        },
+                        "improvements": {
+                          "type": "array",
+                          "items": {"type": "string"}
+                        },
+                        "keyPhrases": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "phrase": {"type": "string"},
+                              "definition": {"type": "string"},
+                              "alternatives": {
+                                "type": "array",
+                                "items": {"type": "string"}
+                              },
+                              "partOfSpeech": {"type": "string"},
+                              "frequency": {"type": "string"}
+                            },
+                            "required": ["phrase", "definition"]
+                          }
+                        },
+                        "alternatives": {
+                          "type": "array",
+                          "items": {"type": "string"}
+                        },
+                        "grammarPattern": {"type": "string"},
+                        "difficulty": {"type": "string"}
+                      },
+                      "required": ["text", "startIndex", "endIndex", "contextualMeaning"]
+                    }
+                  }
+                },
+                "required": ["originalText", "sentences"]
+              }
+            }
+          }
+        ]
       })
     );
 
