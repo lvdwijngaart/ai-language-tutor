@@ -2,10 +2,15 @@ import 'package:ai_lang_tutor_v2/components/analysis/sentence_analysis_widget.da
 import 'package:ai_lang_tutor_v2/components/chat/chat_message_bubble.dart';
 import 'package:ai_lang_tutor_v2/components/chat/dropdowns.dart';
 import 'package:ai_lang_tutor_v2/components/chat/input_area.dart';
+import 'package:ai_lang_tutor_v2/components/chat/live_transcript_preview.dart';
 import 'package:ai_lang_tutor_v2/components/chat/loading_indicator.dart';
+import 'package:ai_lang_tutor_v2/components/chat/mic-transcipt/transcript_confirmation.dart';
 import 'package:ai_lang_tutor_v2/constants/chat_constants.dart';
+import 'package:ai_lang_tutor_v2/models/ai_response.dart';
 import 'package:ai_lang_tutor_v2/models/chat_message.dart';
 import 'package:ai_lang_tutor_v2/models/sentence_analysis.dart';
+import 'package:ai_lang_tutor_v2/models/transcript_confirmation_result.dart';
+import 'package:ai_lang_tutor_v2/services/ai_tutor_service.dart';
 import 'package:ai_lang_tutor_v2/services/speech_to_text_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -60,21 +65,33 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // Initialize speech recognition
   void _initSpeech() async {
+    _logger.i('Initializing speech recognition...');
     bool initialized = await SpeechToTextService.initialize(
       onError: (error) {
-        _logger.e('Speech recognition error: $error');
-        if (mounted && error.permanent) {
+        _logger.e('Speech recognition error: ${error.errorMsg}');
+        if (mounted) {
+          // Show different messages based on error message
+          // TODO: Something might be going wrong here because when I start the mic and don't talk, it should say something like "No speech detected" but it says speech recognition is not available
+          String errorMessage = 'Speech recognition error occurred.';
+          if (error.permanent) {
+            errorMessage = 'Speech recognition is not available on this device.';
+          } else if (error.errorMsg.toLowerCase().contains('network')) {
+            errorMessage = 'Network error. Check your internet connection.';
+          } else if (error.errorMsg.toLowerCase().contains('no_match')) {
+            errorMessage = 'No speech detected. Please try again.';
+          }
+          
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Speech recognition is not available on this device.'), 
-              backgroundColor: Colors.orange, 
+              content: Text(errorMessage), 
+              backgroundColor: error.permanent ? Colors.red : Colors.orange, 
               duration: Duration(seconds: 3),
             ), 
           );
         }
 
         // Update state to reflect speech recognition is not available
-        if (mounted) {
+        if (mounted && error.permanent) {
           setState(() {
             _speechEnabled = false;
             _isListening = false;
@@ -83,10 +100,16 @@ class _ChatScreenState extends State<ChatScreen> {
       },
       onStatus: (status) {
         _logger.i('Speech recognition status: $status');
-        if (status == 'notListening' && mounted) {
-          setState(() {
-            _isListening = false;
-          });
+        if (mounted) {
+          if (status == 'notListening') {
+            setState(() {
+              _isListening = false;
+            });
+          } else if (status == 'listening') {
+            setState(() {
+              _isListening = true;
+            });
+          }
         }
       }, 
       logger: _logger, 
@@ -97,6 +120,12 @@ class _ChatScreenState extends State<ChatScreen> {
       setState(() {
         _speechEnabled = initialized;
       });
+      
+      if (initialized) {
+        _logger.i('Speech recognition initialized successfully');
+      } else {
+        _logger.w('Speech recognition initialization failed');
+      }
     }
   }
 
@@ -198,10 +227,27 @@ class _ChatScreenState extends State<ChatScreen> {
     _logger.i('Starting speech recognition...');
     if (!_speechEnabled) {
       _logger.w('Speech recognition is not enabled, cannot start listening.');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Speech recognition is not available. Try reinitializing.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
       return;
     }
 
+    // Clear any previous transcript
+    setState(() {
+      _currentTranscript = '';
+      _messageController.text = '';
+    });
+
+    // Use default locale (let the system choose the best one)
     String locale = _targetLanguage.localeCode; 
+    // String? locale; // Let the system choose the default locale
 
     bool success = await SpeechToTextService.startListening(
       // TODO: Consider adding support for multi locale understanding. 
@@ -216,7 +262,8 @@ class _ChatScreenState extends State<ChatScreen> {
             _messageController.text = _currentTranscript;
           });
         }
-      }
+      },
+      logger: _logger,
     );
 
     _logger.i('Start listening success: $success');
@@ -226,11 +273,21 @@ class _ChatScreenState extends State<ChatScreen> {
         _isListening = success;
         if (!success) {
           _currentTranscript = '';
+          _messageController.text = '';
         }
       });
 
-      // Scroll to bottom to show the live transcript preview
-      if (success) {
+      // Show error message if listening failed
+      if (!success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to start speech recognition. Please try again.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      } else {
+        // Scroll to bottom to show the live transcript preview
         _scrollToBottom();
       }
     }
@@ -240,6 +297,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // Stop listening for speech
   void _stopListening() async {
+    _logger.i('Stopping speech recognition...');
     await SpeechToTextService.stopListening(_logger);
 
     if (mounted) {
@@ -247,15 +305,17 @@ class _ChatScreenState extends State<ChatScreen> {
         _isListening = false;
       });
 
+      // If there is a transcript, you could show a confirmation dialog here
       if (_currentTranscript.isNotEmpty) {
-        // If there is a transcript, show it to the user and ask if they want to send it or redo it/cancel
-        _logger.w('stopListening not yet implemented to handle transcript confirmation.');
+        _logger.i('Transcript received: $_currentTranscript');
+        // TODO: show confirmation dialog
+        _showTranscriptConfirmation(_currentTranscript);
       }
     }
   }
 
   // Handle sending a message
-  void _sendMessage({String? customMessage, String? preCommand = ''}) {
+  void _sendMessage({String? customMessage, String? preCommand = ''}) async {
 
     String messageText = customMessage ?? _messageController.text.trim();
     if (messageText.isEmpty) return;
@@ -266,10 +326,11 @@ class _ChatScreenState extends State<ChatScreen> {
     });
 
     // Add user message
-    _messages.add(ChatMessage(
+    ChatMessage userMessage = ChatMessage(
       text: messageText, 
       isUserMessage: true
-    ));
+    );
+    _messages.add(userMessage);
 
     // Clear input field if message was taken from input
     if (customMessage == null) {
@@ -281,7 +342,49 @@ class _ChatScreenState extends State<ChatScreen> {
 
     // Get AI response
     //TODO: implement AI functionality
+    AIResponse aiMessage = await AILanguageTutorService.sendMessage(
+      message: userMessage, 
+      conversationHistory: [], 
+      targetLanguage: _targetLanguage, 
+      proficiencyLevel: _proficiencyLevel
+    );
+    _logger.i(aiMessage.aiMessage);
+    _messages.add(aiMessage.aiMessage);
+    setState(() {});
+  }
 
+  Future<void> _showTranscriptConfirmation(String transcript) async {
+    // TODO: Possibly handle the getting the AI analysis here
+
+
+    final result = await showDialog<TranscriptConfirmationResult>(
+      context: context,
+      builder: (BuildContext context) {
+        return TranscriptConfirmationDialog(
+          transcript: transcript, 
+          onSend: () => Navigator.of(context).pop(TranscriptConfirmationResult.send), 
+          onRetry: () => Navigator.of(context).pop(TranscriptConfirmationResult.retry), 
+          onCancel: () => Navigator.of(context).pop(TranscriptConfirmationResult.cancel)
+        );
+      }
+    );
+
+    if (result != null && mounted) {
+      switch (result) {
+        case TranscriptConfirmationResult.send: 
+          _sendMessage(customMessage: transcript);
+          break;
+        case TranscriptConfirmationResult.retry: 
+          _startListening();
+          break;
+        case TranscriptConfirmationResult.cancel: 
+          setState(() {
+            _currentTranscript = '';
+            _messageController.clear();
+          });
+          break;
+      }
+    }
   }
 
   @override
@@ -303,7 +406,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
           // Language and Proficiency Level Selectors
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 12),
             color: AppColors.darkBackground, 
             child: Row(
               children: [
@@ -321,7 +424,14 @@ class _ChatScreenState extends State<ChatScreen> {
                           children: [
                             Text(language.flagEmoji, style: const TextStyle(fontSize: 16)),
                             const SizedBox(width: 6),
-                            Text(language.displayName, style: const TextStyle(color: Color(0xFF3A86FF), fontSize: 16)),
+                            Flexible(
+                              child: Text(
+                                language.displayName, 
+                                style: const TextStyle(color: AppColors.electricBlue, fontSize: 16), 
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              )
+                            )
                           ],
                         )
                       );
@@ -341,9 +451,16 @@ class _ChatScreenState extends State<ChatScreen> {
                         return Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(language.flagEmoji, style: const TextStyle(fontSize: AppSpacing.medium)), 
+                            Text(language.flagEmoji, style: TextStyle(fontSize: 16)), 
                             const SizedBox(width: 6),
-                            Text(language.displayName, style: const TextStyle(color: AppColors.electricBlue, fontSize: 16),)
+                            Flexible(
+                              child: Text(
+                                language.displayName, 
+                                style: const TextStyle(color: AppColors.electricBlue, fontSize: 16), 
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              )
+                            )
                           ],
                         );
                       }).toList();
@@ -375,7 +492,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       }
                     }, 
                     accentColor: AppColors.secondaryAccent,
-                    fontSize: 14,
+                    fontSize: 15,
                     icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.secondaryAccent),
                   )
                 ), 
@@ -390,7 +507,8 @@ class _ChatScreenState extends State<ChatScreen> {
               padding: const EdgeInsets.all(16),
               itemCount: _messages.length + 
                         (_showConversationStarters ? 1 : 0) + // Add one for conversation starters if enabled
-                        (_isLoading ? 1 : 0), // Add one for loading indicator if loading
+                        (_isLoading ? 1 : 0) + // Add one for loading indicator if loading
+                        (_isListening ? 1 : 0),
                         // +1 for when listening (@todo)
 
               itemBuilder: (context, index) {
@@ -401,6 +519,12 @@ class _ChatScreenState extends State<ChatScreen> {
                   return const LoadingIndicator();
                 }
 
+                // Live transcript preview
+                if (_isListening && 
+                    index == _messages.length + (_showConversationStarters ? 1 : 0)) {
+                  return LiveTranscriptPreview(currentTranscript: _currentTranscript);
+                }
+
                 // Conversation starters
                 if (_showConversationStarters && index == _messages.length) {
                   return ConversationStarters(
@@ -408,9 +532,6 @@ class _ChatScreenState extends State<ChatScreen> {
                     onStarterTapped: _sendConversationStarter,
                   );
                 }
-
-                // Live transcript preview
-
 
                 // Regular chat messages
                 final message = _messages[index];
@@ -429,14 +550,8 @@ class _ChatScreenState extends State<ChatScreen> {
             speechEnabled: _speechEnabled, // Change based on configuration
             isListening: _isListening, // Change based on speech recognition state
             currentTranscript: _currentTranscript, // Change based on speech recognition state
-            onSendMessage: () {
-              // Handle speech toggle
-              _logger.w('onSendMessage functionality not implemented yet.');
-            },
-            onToggleSpeech: () {
-              // Handle speech toggle
-              _toggleListening();
-            },
+            onSendMessage: _sendMessage,
+            onToggleSpeech: _toggleListening,
             onForceReinitializeSpeech: _forceReinitializeSpeech, // Optional callback for reinitializing speech
           ),
         ]

@@ -113,55 +113,71 @@ class SpeechToTextService {
       return false;
     }
 
-    // Request permissions explicitly first
-    logger?.i('Requesting microphone permission...');
-    Map<Permission, PermissionStatus> permissions = await [
-      Permission.microphone, 
-      Permission.speech,
-    ].request();
-
-    logger?.i('Microphone permission status: ${permissions[Permission.microphone]}');
-    logger?.i('Speech permission status: ${permissions[Permission.speech]}');
-
-    bool micGranted = permissions[Permission.microphone]?.isGranted ?? false;
-    if(!micGranted) {
-      logger?.i('Microphone permission denied');
-      return false;
-    }
-
+    // Check if we already have permissions (don't request again if we already have them)
     bool available = await _speechToText.hasPermission;
     if (!available) {
-      logger?.w('Speech recognition permission not available.');
-      return false;
+      logger?.w('Speech recognition permission not available, requesting...');
+      
+      // Only request permissions if we don't have them
+      Map<Permission, PermissionStatus> permissions = await [
+        Permission.microphone, 
+        Permission.speech,
+      ].request();
+
+      logger?.i('Microphone permission status: ${permissions[Permission.microphone]}');
+      logger?.i('Speech permission status: ${permissions[Permission.speech]}');
+
+      bool micGranted = permissions[Permission.microphone]?.isGranted ?? false;
+      if(!micGranted) {
+        logger?.w('Microphone permission denied');
+        return false;
+      }
+
+      // Check again after requesting
+      available = await _speechToText.hasPermission;
+      if (!available) {
+        logger?.w('Speech recognition permission still not available after request.');
+        return false;
+      }
     }
     
-    // All permissions granted, proceed with listening
-    _isListening = true;
+    // Check if already listening
+    if (_speechToText.isListening) {
+      logger?.w('Already listening, stopping first...');
+      await _speechToText.stop();
+      await Future.delayed(const Duration(milliseconds: 100));
+    }
 
     try {
-      logger?.i('Starting speech recognition...');
+      logger?.i('Starting speech recognition with locale: ${localeId ?? "default"}');
+      
       await _speechToText.listen(
         onResult: onResult,
         localeId: localeId, 
-        listenMode: ListenMode.dictation,
+        listenMode: ListenMode.dictation, // TODO: Look into ListenOptions and also make so that if pauseFor is reached, it lets the user know/stops listening and brings confirmation window
         partialResults: true, 
-        pauseFor: const Duration(seconds: 5),
-        listenFor: const Duration(seconds: 60),
+        pauseFor: const Duration(seconds: 10), // Reduced pause time
+        listenFor: const Duration(seconds: 60), // Reduced listen time
         onSoundLevelChange: onSoundLevelChange,
       );
-      logger?.i('Speech recognition started successfully.');
+      
+      logger?.i('Speech recognition listen command sent.');
+      _isListening = true;
 
       // Wait a moment and check if we're actually listening
       await Future.delayed(const Duration(milliseconds: 500));
       bool actuallyListening = _speechToText.isListening;
+      logger?.i('Actually listening after delay: $actuallyListening');
 
-      // If we're not actually listening, stop listening and log a warning
+      // Update our state based on actual listening status
+      _isListening = actuallyListening;
+
       if (!actuallyListening) {
         logger?.w('Speech recognition started but is not actually listening.');
-        _isListening = false;
         return false;
       }
 
+      logger?.i('Speech recognition started successfully.');
       return true;
 
     } catch (e) {
@@ -175,13 +191,19 @@ class SpeechToTextService {
 
   // Stop listening
   static Future<void> stopListening(Logger? logger) async{
+    logger?.i('Stopping speech recognition...');
     try {
-      await _speechToText.stop();
-      logger?.i('Speech recognition stopped successfully.');
+      if (_speechToText.isListening) {
+        await _speechToText.stop();
+        logger?.i('Speech recognition stopped successfully.');
+      } else {
+        logger?.i('Speech recognition was not listening, nothing to stop.');
+      }
     } catch (e) {
       logger?.e('Error stopping speech recognition: $e');
     } finally {
       _isListening = false;
+      logger?.i('Speech recognition state reset to not listening.');
     }
   }
 

@@ -29,8 +29,9 @@ class TutorChatDropdown<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      height: 64,
       margin: const EdgeInsets.all(AppSpacing.small), 
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6), 
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), 
       decoration: BoxDecoration(
         color: accentColor.withOpacity(0.2), 
         borderRadius: BorderRadius.circular(20), 
@@ -45,6 +46,9 @@ class TutorChatDropdown<T> extends StatelessWidget {
           selectedItemBuilder: itemBuilder,
           items: items, 
           onChanged: onChanged, 
+          isDense: true,
+          iconSize: 20,
+          isExpanded: true,
         )
       ),
     );
