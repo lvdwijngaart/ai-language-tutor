@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:ai_lang_tutor_v2/components/analysis/sentence_analysis_widget.dart';
 import 'package:ai_lang_tutor_v2/components/chat/chat_message_bubble.dart';
 import 'package:ai_lang_tutor_v2/components/chat/dropdowns.dart';
@@ -15,6 +17,7 @@ import 'package:ai_lang_tutor_v2/services/speech_to_text_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logger/logger.dart';
+import 'dart:developer';
 import '../../components/chat/conversation_starters.dart';
 import '../../constants/app_constants.dart' show AppColors, AppSpacing, AppTextStyles, cardBackground, secondaryAccent;
 import '../../models/app_enums.dart' show Language, ProficiencyLevel;
@@ -259,7 +262,7 @@ class _ChatScreenState extends State<ChatScreen> {
         if (mounted) {
           setState(() {
             _currentTranscript = result.recognizedWords;
-            _messageController.text = _currentTranscript;
+            // _messageController.text = _currentTranscript;
           });
         }
       },
@@ -273,7 +276,7 @@ class _ChatScreenState extends State<ChatScreen> {
         _isListening = success;
         if (!success) {
           _currentTranscript = '';
-          _messageController.text = '';
+          // _messageController.text = '';
         }
       });
 
@@ -308,7 +311,6 @@ class _ChatScreenState extends State<ChatScreen> {
       // If there is a transcript, you could show a confirmation dialog here
       if (_currentTranscript.isNotEmpty) {
         _logger.i('Transcript received: $_currentTranscript');
-        // TODO: show confirmation dialog
         _showTranscriptConfirmation(_currentTranscript);
       }
     }
@@ -328,7 +330,9 @@ class _ChatScreenState extends State<ChatScreen> {
     // Add user message
     ChatMessage userMessage = ChatMessage(
       text: messageText, 
-      isUserMessage: true
+      isUserMessage: true, 
+      targetLanguage: _targetLanguage, 
+      proficiencyLevel: _proficiencyLevel
     );
     _messages.add(userMessage);
 
@@ -341,16 +345,18 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToBottom();
 
     // Get AI response
-    //TODO: implement AI functionality
     AIResponse aiMessage = await AILanguageTutorService.sendMessage(
       message: userMessage, 
-      conversationHistory: [], 
+      conversationHistory: _messages, 
       targetLanguage: _targetLanguage, 
       proficiencyLevel: _proficiencyLevel
     );
-    _logger.i(aiMessage.aiMessage);
+    _logger.i(aiMessage.toString());
+    _logger.i(jsonEncode(userMessage.toJson()));
     _messages.add(aiMessage.aiMessage);
+    // _messages.add(ChatMessage(text: 'Total tokens: ' + aiMessage.totalTokens.toString(), isUserMessage: false));
     setState(() {});
+    _scrollToBottom();
   }
 
   Future<void> _showTranscriptConfirmation(String transcript) async {

@@ -123,9 +123,9 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
             child: TabBarView(
               controller: _tabController,
               children: [
-                // TODO: Build tab widgets
                 _buildAnalysisTab(), 
-                _buildClozeTab()
+                _buildClozeTab(),
+                if (widget.isUserMessage) _buildImprovementsTab(),
               ]
             ),
           )
@@ -136,7 +136,7 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
 
   Widget _buildAnalysisTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16), 
+      padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 100), 
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -161,6 +161,57 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
           const SizedBox(height: 20,),
 
           // TODO: Build sections
+          _buildSection(
+            title: 'Meaning in Context', 
+            icon: Icons.lightbulb_outline, 
+            color: Colors.orange, 
+            child: Text(widget.sentenceAnalysis.contextualMeaning)
+          ), 
+
+          if (widget.sentenceAnalysis.keyTerms.isNotEmpty) ...[
+            const SizedBox(height: 20,), 
+            _buildSection(
+              title: 'Key terms', 
+              icon: Icons.book, 
+              color: Colors.blue, 
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: widget.sentenceAnalysis.keyTerms.map((def) => 
+                    _buildKeyTerm(def)
+                  ).toList(),
+                ),
+              ),
+            )
+          ], 
+
+          if (widget.sentenceAnalysis.alternatives.isNotEmpty) ...[
+            const SizedBox(height: 20,), 
+            _buildSection(
+              title: 'Alternative Expressions', 
+              icon: Icons.swap_horiz, 
+              color: Colors.green, 
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: widget.sentenceAnalysis.alternatives.map((alt) => 
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1), 
+                      borderRadius: BorderRadius.circular(16), 
+                      border: Border.all(color: Colors.green.withOpacity(0.3))
+                    ),
+                    child: Text(
+                      alt, 
+                      style: const TextStyle(color: Colors.green, fontSize: 12),
+                    ),
+                  ),
+                ).toList(),
+              )
+            )
+          ]
         ],
       ),
     );
@@ -312,6 +363,85 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
 
     return Container(
       
+    );
+  }
+
+  Widget _buildSection({
+    required String title, 
+    required IconData icon, 
+    required Color color, 
+    required Widget child
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: color, size: 18),
+            const SizedBox(width: 8,), 
+            Text(
+              title, 
+              style: TextStyle(
+                color: color, 
+                fontSize: 14, 
+                fontWeight: FontWeight.bold
+              ),
+            )
+          ],
+        ), 
+        const SizedBox(height: 8,), 
+        child
+      ],
+    );
+  }
+
+  Widget _buildKeyTerm(KeyTerm term) {
+    return Container(
+      width: 150,
+      margin: const EdgeInsets.only(right: 12),
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.blue.withOpacity(0.1), 
+        borderRadius: BorderRadius.circular(8), 
+        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            term.termText, // term
+            style: const TextStyle(
+              color: Colors.blue, 
+              fontWeight: FontWeight.bold, 
+              fontSize: 16
+            ),
+          ),
+          const SizedBox(height: 4,), 
+          Text(
+            term.definition, // definition
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+          ),
+          const SizedBox(height: 8,),
+          Text(
+            term.contextualMeaning,  // Contextual meaning
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ), 
+          if (term.examples != null && term.examples!.isNotEmpty) ...[
+            const SizedBox(height: 8,), 
+            ...term.examples!.map((example) => Padding(
+              padding: const EdgeInsets.only(top: 4), 
+              child: Text(
+                '• $example', 
+                style: const TextStyle(
+                  color: Colors.white60, 
+                  fontSize: 12, 
+                  fontStyle: FontStyle.italic
+                ),
+              ),
+            ))
+          ]
+        ],
+      ),
     );
   }
 
