@@ -52,10 +52,6 @@ class ChatMessageBubble extends StatelessWidget {
     }
 
     // If there are sentence analyses, build tappable sentences
-    if (message.sentenceAnalyses != null && message.sentenceAnalyses!.isNotEmpty) {
-
-    }
-
     // Create a list to hold TextSpans for each sentence
     List<TextSpan> sentenceSpans = [];
 

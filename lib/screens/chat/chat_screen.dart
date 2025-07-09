@@ -47,7 +47,7 @@ class _ChatScreenState extends State<ChatScreen> {
   String _currentTranscript = ''; // Change based on speech recognition state
 
   // When chat starts, show conversation starters
-  bool _showConversationStarters = false; 
+  bool _showConversationStarters = true; 
 
   @override 
   void initState() {
@@ -155,16 +155,32 @@ class _ChatScreenState extends State<ChatScreen> {
   void _changeTargetLanguage(Language newLanguage) {
     setState(() {
       _targetLanguage = newLanguage;
-      _logger.i('Target language changed to: ${newLanguage.displayName}');
     });
+
+    _messages.add(ChatMessage(
+      text: 'Changed the target language to ${newLanguage.displayName}', 
+      isUserMessage: false
+    ));
+
+    // Possibly add a snackbar here
+
+    _scrollToBottom();
   }
 
   // Function to change proficiency level
   void _changeProficiencyLevel(ProficiencyLevel newLevel) {
     setState(() {
       _proficiencyLevel = newLevel;
-      _logger.i('Proficiency level changed to: ${newLevel.displayName}');
     });
+
+    _messages.add(ChatMessage(
+      text: 'Changed the proficiency level to ${newLevel.displayName}', 
+      isUserMessage: false
+    ));
+
+    // Possibly add a Snackbar here
+
+    _scrollToBottom();
   }
 
   // Scroll to bottom of chat
@@ -184,11 +200,15 @@ class _ChatScreenState extends State<ChatScreen> {
   void _sendConversationStarter(String starter) {
     // Format and send to AI
     _logger.i('Sending conversation starter: $starter');
-    _logger.w('Function _sendConversationStarter is not implemented yet.');
+
+    // Formulate the message that will be sent to the 
+    String message = 'Please start a conversation with me about the following topic: $starter';
+
+    _sendMessage(customMessage: message, userAnalysis: false);
   }
 
   // Show sentence analysis panel
-  _showSentenceAnalysis(SentenceAnalysis analysis, ChatMessage message) {
+  void _showSentenceAnalysis(SentenceAnalysis analysis, ChatMessage message) {
     _logger.i('Showing sentence analysis for: ${analysis.sentence}');
     // Build analysis panel
     // SentenceAnalysisWidget();
@@ -264,6 +284,7 @@ class _ChatScreenState extends State<ChatScreen> {
             _currentTranscript = result.recognizedWords;
             // _messageController.text = _currentTranscript;
           });
+          _scrollToBottom();
         }
       },
       logger: _logger,
@@ -317,7 +338,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   // Handle sending a message
-  void _sendMessage({String? customMessage, String? preCommand = ''}) async {
+  void _sendMessage({String? customMessage, String? preCommand = '', bool userAnalysis = true}) async {
 
     String messageText = customMessage ?? _messageController.text.trim();
     if (messageText.isEmpty) return;
@@ -345,11 +366,16 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToBottom();
 
     // Get AI response
-    AIResponse aiMessage = await AILanguageTutorService.sendMessage(
+    final AIResponse aiMessage = await AILanguageTutorService.sendMessage(
       message: userMessage, 
       conversationHistory: _messages, 
       targetLanguage: _targetLanguage, 
-      proficiencyLevel: _proficiencyLevel
+      proficiencyLevel: _proficiencyLevel, 
+      analyzeUserMessage: userAnalysis, 
+      onUserAnalysisReady: (userAnalysis) { 
+        userMessage.sentenceAnalyses = userAnalysis.aiMessage.sentenceAnalyses;
+        setState(() {});
+      },
     );
     _logger.i(aiMessage.toString());
     _logger.i(jsonEncode(userMessage.toJson()));
@@ -515,7 +541,6 @@ class _ChatScreenState extends State<ChatScreen> {
                         (_showConversationStarters ? 1 : 0) + // Add one for conversation starters if enabled
                         (_isLoading ? 1 : 0) + // Add one for loading indicator if loading
                         (_isListening ? 1 : 0),
-                        // +1 for when listening (@todo)
 
               itemBuilder: (context, index) {
                 _logger.i('ListView building item $index');

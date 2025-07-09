@@ -8,16 +8,6 @@ class StandardChatMessages {
     text: 'Welcome to the AI Tutor Chat! How can I assist you today?',
     isUserMessage: false,
     timestamp: DateTime.now(),
-    sentenceAnalyses: [
-      SentenceAnalysis(
-        sentence: 'Welcome to the AI Tutor Chat!',
-        contextualMeaning: 'This is a greeting message to start the chat.',
-      ), 
-      SentenceAnalysis(
-        sentence: 'How can I assist you today?',
-        contextualMeaning: 'This is an invitation for the user to ask questions or seek help.',
-      ),
-    ],
   );
 
   static ChatMessage loadingMessage = ChatMessage(
@@ -41,7 +31,8 @@ class StandardChatMessages {
     sentenceAnalyses: [
       SentenceAnalysis(
         sentence: 'This is a test message for debugging purposes.',
-        contextualMeaning: 'This message is used to test the chat functionality.',
+        translation: 'This is the translation of the test message',
+        contextualMeaning: 'This is the contextual meaning of the test message.',
       )
     ],
   );

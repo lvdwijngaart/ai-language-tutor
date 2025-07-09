@@ -3,6 +3,7 @@ import 'dart:convert';
 
 class SentenceAnalysis {
   final String sentence;
+  final String translation;
   final List<KeyTerm> keyTerms;
   final List<String> alternatives;
   final String contextualMeaning;
@@ -12,6 +13,7 @@ class SentenceAnalysis {
 
   SentenceAnalysis({
     required this.sentence, 
+    required this.translation,
     this.keyTerms = const [], 
     this.alternatives = const [],
     required this.contextualMeaning,
@@ -65,6 +67,7 @@ class SentenceAnalysis {
 
       final result = SentenceAnalysis(
         sentence: json['sentence']?.toString() ?? '',
+        translation: json['translation']?.toString() ?? '',
         keyTerms: keyTerms,
         alternatives: alternatives,
         contextualMeaning: json['contextualMeaning']?.toString() ?? '',
@@ -96,9 +99,9 @@ class Mistake {
 
   factory Mistake.fromJson(Map<String, dynamic> json) => 
     Mistake(
-      error: json['error'], 
-      correction: json['correction'], 
-      explanation: json['explanation']
+      error: json['error']?.toString() ?? '',
+      correction: json['correction']?.toString() ?? '',
+      explanation: json['explanation']?.toString() ?? '',
     );
 }
 

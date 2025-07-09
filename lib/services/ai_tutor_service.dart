@@ -41,12 +41,13 @@ class AILanguageTutorService {
       - Keep responses to 1-3 sentences maximum
       - Be conversational and engaging
       - Ask follow-up questions to maintain the dialogue
-      - Provide gentle corrections when needed
+      - If a mistake was made, ignore it and assume what the user meant. This correcting will be done in a seperate api request. 
       - Use vocabulary appropriate for $proficiencyLevel level
       - Be encouraging and supportive
 
       For your response analysis:
       - Break down EVERY sentence into individual analyses
+      - Provide literal or idiomatic translation per sentence
       - Identify key vocabulary terms with definitions and translations
       - Provide alternative expressions for each sentence
       - Explain the contextual meaning of each sentence
@@ -62,14 +63,21 @@ class AILanguageTutorService {
       IMPORTANT: You MUST use the comprehensive_language_analysis function for ALL responses. Never respond with plain text.
 
       Your task is to:
-      Analyze the given user input on their language and: 
-      - Break down EVERY sentence into individual analyses
-      - Identify key vocabulary terms with definitions and translations
-      - Provide alternative expressions for each sentence
-      - Explain the contextual meaning of each sentence
-      - Identify mistakes and provide a correction and an explanation
+      1. Return the user's **exact original message** in the `"text"` field.
+      2. Divide the user's message into grammatical sentences and place each **complete, non-repeated sentence** into the `"sentenceAnalyses"` array as its own object.
+      3. DO NOT:
+        - Repeat any sentence or part of a sentence.
+        - Split one sentence across multiple objects.
+        - Combine multiple sentences into one object.
+      4. Each sentence should appear **exactly once** in the `"sentenceAnalyses"` array.
+      If any sentence appears more than once, this is an error.
+      You MUST check for duplicates in the sentenceAnalyses array before submitting the response.
+      Do not include the same sentence or sentence object more than once.
 
-      REMEMBER: You must provide sentenceAnalyses for the user's message. Do not leave this array empty.
+
+      REMEMBER: You must provide sentenceAnalyses for the user's message. This means dividing the user's message into sentences, and not hallucinating or repeating sentences more than in the original messaeg. Do not leave this array empty.
+
+      The message you need to analyze is: 
     ''';
   }
 
@@ -80,64 +88,69 @@ class AILanguageTutorService {
     required Language targetLanguage, 
     required ProficiencyLevel proficiencyLevel, 
     bool analyzeUserMessage = false,
+    required void Function(AIResponse userAnalysis) onUserAnalysisReady
   }) async {
     try {
       if (_apiKey.isEmpty) {
         throw Exception('OpenAI API key not found. Please add OPENAI_API_KEY to your .env file');
       }
 
-      final aiResponse = await _getConversationalResponse(
+      final aiResponse = await _getResponse(
         userMessage: message, 
         conversationHistory: conversationHistory, 
         targetLanguage: targetLanguage, 
         proficiencyLevel: proficiencyLevel, 
+        isAnalysisRequest: false
       );
-
-      final userMessage = await _getAnalysisResponse(
-        userMessage: message, 
-        conversationHistory: conversationHistory, 
-        targetLanguage: targetLanguage, 
-        proficiencyLevel: proficiencyLevel
-      );
-
-      // Optionally get the userMessageAnalysis for the user's last message
-      SentenceAnalysis? userSentenceAnalysis;
-      // if (analyzeUserMessage && message.text.trim().isNotEmpty) {
-      //   userSentenceAnalysis = await _getUserMessageAnalysis(
-      //     userMessage: message, 
-      //     targetLanguage: targetLanguage, 
-      //     proficiencyLevel: proficiencyLevel
-      //   );
-      // }
-      message.sentenceAnalyses = userMessage.sentenceAnalyses;
-
+      
+      AIResponse? userMessage;
+      if (analyzeUserMessage && message.text.trim().isNotEmpty) {
+        _getResponse(
+          userMessage: message, 
+          conversationHistory: conversationHistory, 
+          targetLanguage: targetLanguage, 
+          proficiencyLevel: proficiencyLevel, 
+          isAnalysisRequest: true
+        ).then((userAnalysis) {
+          onUserAnalysisReady(userAnalysis);
+          // message.sentenceAnalyses = userAnalysis.aiMessage.sentenceAnalyses; 
+        }).catchError((e) {
+          throw Exception('Something went wrong in the userAnalysis request');
+        }); 
+      }
       
       return aiResponse;
 
     } catch (error) {
-      // return _createFallbackResponse();
+      // return _createFallbackResponse(); TODO: Better fallback
       return AIResponse(
-        aiMessage: ChatMessage(text: error.toString(), isUserMessage: false, targetLanguage: targetLanguage, proficiencyLevel: proficiencyLevel), 
-        language: targetLanguage, 
-        proficiencyLevel: proficiencyLevel
+        aiMessage: ChatMessage(
+          text: error.toString(), 
+          isUserMessage: false, 
+          targetLanguage: targetLanguage, 
+          proficiencyLevel: proficiencyLevel
+        ), 
       );
     }
   }
 
-  static Future<AIResponse> _getConversationalResponse({
+  static Future<AIResponse> _getResponse({
     required ChatMessage userMessage, 
     required List<ChatMessage> conversationHistory, 
     required Language targetLanguage, 
-    required ProficiencyLevel proficiencyLevel
+    required ProficiencyLevel proficiencyLevel, 
+    required bool isAnalysisRequest
   }) async {
     // Build conversational system prompt
     final messages = <Map<String, String>>[];
 
     // Add instruction prompt to the message queue
-    messages.add({
-      'role': 'system',
-      'content': _buildInstructionPrompt(targetLanguage, proficiencyLevel)
-    });
+    if (!isAnalysisRequest) {
+      messages.add({
+        'role': 'system',
+        'content': _buildInstructionPrompt(targetLanguage, proficiencyLevel)
+      });
+    }
 
     // Include conversation history of length $messageContext
     final int messageContext = 8;
@@ -152,30 +165,67 @@ class AILanguageTutorService {
       });
     }
 
-    // Add current User Message   
-    messages.add({
-        'role': 'user',
-        'content': userMessage.text.trim()
+    if (isAnalysisRequest) {
+      messages.add({
+        'role': 'system',
+        'content': _buildAnalysisPrompt(targetLanguage, proficiencyLevel)
       });
+    }
 
     // Make API call for conversation
-    final response = await http.post(
-      Uri.parse(_openaiApiUrl), 
-      headers: {
-        'Content-Type': 'application/json', 
-        'Authorization': 'Bearer $_apiKey'
-      }, 
-      body: jsonEncode({
-        'model': 'gpt-4o-mini',
-        'messages': messages,
-        'max_tokens': 4000,
-        'temperature': 0.7,
-        'presence_penalty': 0.1,
-        'frequency_penalty': 0.1,
-        'tool_choice': {"type": "function", "function": {"name": "comprehensive_language_response"}},
-        'tools': _responseTools
-      })
-    );
+    final toolChoice = isAnalysisRequest 
+      ? {"type": "function", "function": {"name": "comprehensive_language_analysis"}} 
+      : {"type": "function", "function": {"name": "comprehensive_language_response"}} ;
+
+    try {
+      final response = await http.post(
+        Uri.parse(_openaiApiUrl), 
+        headers: {
+          'Content-Type': 'application/json', 
+          'Authorization': 'Bearer $_apiKey'
+        }, 
+        body: jsonEncode({
+          'model': 'gpt-4o-mini',
+          'messages': messages,
+          'max_tokens': 2000,
+          'temperature': 0.7,
+          'presence_penalty': 0.1,
+          'frequency_penalty': 0.1,
+          'tool_choice': toolChoice,
+          'tools': isAnalysisRequest ? _analysisTools : _responseTools
+        })
+      );
+
+      try {
+        AIResponse aiResponse = isAnalysisRequest 
+          ? await _getAnalysisResponse(
+              response: response,
+              userMessage: userMessage, 
+              targetLanguage: targetLanguage, 
+              proficiencyLevel: proficiencyLevel
+            )
+          : await _getConversationalResponse(
+              response: response, 
+              userMessage: userMessage, 
+              targetLanguage: targetLanguage, 
+              proficiencyLevel: proficiencyLevel
+            );
+
+        return aiResponse;
+      } catch (e) {
+        throw Exception('Error occurred while extracting/parsing data: $e');
+      }
+    } catch (e) {
+      throw Exception('Error occurred during API request: $e');
+    }
+  }
+
+  static Future<AIResponse> _getConversationalResponse({
+    required http.Response response,
+    required ChatMessage userMessage, 
+    required Language targetLanguage, 
+    required ProficiencyLevel proficiencyLevel
+  }) async {
 
     // If response is good, decode and parse response into models
     if (response.statusCode == 200) {
@@ -229,8 +279,6 @@ class AILanguageTutorService {
               targetLanguage: targetLanguage, 
               proficiencyLevel: proficiencyLevel
             ), 
-            language: targetLanguage, 
-            proficiencyLevel: proficiencyLevel, 
             inputTokens: data['usage']?['prompt_tokens'], 
             outputTokens: data['usage']?['completion_tokens'], 
             totalTokens: data['usage']?['total_tokens'],
@@ -250,8 +298,6 @@ class AILanguageTutorService {
               targetLanguage: targetLanguage, 
               proficiencyLevel: proficiencyLevel
             ),
-            language: targetLanguage, 
-            proficiencyLevel: proficiencyLevel,
           );
         }
 
@@ -266,8 +312,6 @@ class AILanguageTutorService {
             targetLanguage: targetLanguage, 
             proficiencyLevel: proficiencyLevel
           ), 
-          language: targetLanguage, 
-          proficiencyLevel: proficiencyLevel,
         );
       }
 
@@ -279,57 +323,12 @@ class AILanguageTutorService {
   }
 
 
-  static Future<ChatMessage> _getAnalysisResponse({
+  static Future<AIResponse> _getAnalysisResponse({
+    required http.Response response,
     required ChatMessage userMessage, 
-    required List<ChatMessage> conversationHistory, 
     required Language targetLanguage, 
     required ProficiencyLevel proficiencyLevel
   }) async {
-    // Build analysis system prompt
-    final messages = <Map<String, String>>[];
-
-    messages.add({
-      'role': 'system',
-      'content': _buildAnalysisPrompt(targetLanguage, proficiencyLevel)
-    });
-
-    // Include conversation history
-    final int messageContext = 8;
-    final recentHistory = conversationHistory.length > messageContext
-      ? conversationHistory.sublist(conversationHistory.length - messageContext)
-      : conversationHistory;
-
-    for (final msg in recentHistory) {
-      messages.add({
-        'role': msg.isUserMessage ? 'user' : 'assistant', 
-        'content': msg.text
-      });
-    }
-
-    // Add current User Message   
-    messages.add({
-        'role': 'user',
-        'content': userMessage.text.trim()
-      });
-
-    // Make API call for analysis
-    final response = await http.post(
-      Uri.parse(_openaiApiUrl), 
-      headers: {
-        'Content-Type': 'application/json', 
-        'Authorization': 'Bearer $_apiKey'
-      }, 
-      body: jsonEncode({
-        'model': 'gpt-4o-mini',
-        'messages': messages,
-        'max_tokens': 4000,
-        'temperature': 0.7,
-        'presence_penalty': 0.1,
-        'frequency_penalty': 0.1,
-        'tool_choice': {"type": "function", "function": {"name": "comprehensive_language_analysis"}},
-        'tools': _analysisTools
-      })
-    );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -363,9 +362,10 @@ class AILanguageTutorService {
           List<SentenceAnalysis>? sentenceAnalyses;
           if (sentenceAnalysesData != null && sentenceAnalysesData is List) {
             try {
-              sentenceAnalyses = (sentenceAnalysesData as List)
-                .map((analysis) => SentenceAnalysis.fromJson(analysis))
-                .toList();
+                sentenceAnalyses = sentenceAnalysesData
+                  .map((analysis) => SentenceAnalysis.fromJson(analysis))
+                  .where((analysis) => !checkDuplicateSentence(userMessage, analysis))
+                  .toList();
               _logger.i('🔍 Parsed ${sentenceAnalyses.length} user sentence analyses');
             } catch (e) {
               _logger.e('❌ Error parsing user sentence analyses: $e');
@@ -373,38 +373,54 @@ class AILanguageTutorService {
           }
         
           // Create user analysis message
-          final userAnalysis = ChatMessage(
-            text: text,
-            isUserMessage: true, // Force to true for user analysis
-            sentenceAnalyses: sentenceAnalyses, 
-            targetLanguage: targetLanguage, 
-            proficiencyLevel: proficiencyLevel
+          final aiResponse = AIResponse(
+            aiMessage:ChatMessage(
+              text: text,
+              isUserMessage: true, // Force to true for user analysis
+              sentenceAnalyses: sentenceAnalyses, 
+              targetLanguage: targetLanguage, 
+              proficiencyLevel: proficiencyLevel
+            ), 
+            inputTokens: data['usage']?['prompt_tokens'], 
+            outputTokens: data['usage']?['completion_tokens'], 
+            totalTokens: data['usage']?['total_tokens'],
           );
           
-          _logger.i('🔍 Created user analysis for: "${userAnalysis.text}"');
-          return userAnalysis;
+          
+          _logger.i('🔍 Created user analysis for: "${aiResponse.aiMessage.text}"');
+          return aiResponse;
 
         } catch (e, stackTrace) {
           _logger.e('❌ Error parsing analysis: $e');
           _logger.e('📍 Stack trace: $stackTrace');
           
-          return ChatMessage(
-            text: userMessage.text, 
-            isUserMessage: true,
-            targetLanguage: targetLanguage, 
-            proficiencyLevel: proficiencyLevel
+          return AIResponse(
+            aiMessage: ChatMessage(
+              text: userMessage.text, 
+              isUserMessage: true,
+              targetLanguage: targetLanguage, 
+              proficiencyLevel: proficiencyLevel
+            ),
+            inputTokens: data['usage']?['prompt_tokens'], 
+            outputTokens: data['usage']?['completion_tokens'], 
+            totalTokens: data['usage']?['total_tokens'],
           );
         }
 
       } else {
         _logger.e('❌ No tool calls found for analysis');
         
-        return ChatMessage(
-          text: userMessage.text, 
-          isUserMessage: true,
-          targetLanguage: targetLanguage, 
-          proficiencyLevel: proficiencyLevel
-        );
+        return AIResponse(
+            aiMessage: ChatMessage(
+              text: userMessage.text, 
+              isUserMessage: true,
+              targetLanguage: targetLanguage, 
+              proficiencyLevel: proficiencyLevel
+            ),
+            inputTokens: data['usage']?['prompt_tokens'], 
+            outputTokens: data['usage']?['completion_tokens'], 
+            totalTokens: data['usage']?['total_tokens'],
+          );
       }
 
     } else {
@@ -412,6 +428,10 @@ class AILanguageTutorService {
       throw Exception('OpenAI API Error: ${response.statusCode} - ${response.body}');
     }
     
+  }
+
+  static bool checkDuplicateSentence(ChatMessage message, SentenceAnalysis newSentence) {
+    return message.sentenceAnalyses?.any((analysis) => analysis.sentence == newSentence.sentence) ?? false;
   }
 
 
@@ -440,6 +460,10 @@ class AILanguageTutorService {
                 "sentence": {
                   "type": "string",
                   "description": "Individual sentence from your response"
+                },
+                "translation": {
+                  "type": "string", 
+                  "description": "Literal or idiomatic translation of the sentence"
                 },
                 "keyTerms": {
                   "type": "array",
@@ -491,7 +515,7 @@ class AILanguageTutorService {
                   "description": "Leave empty for AI responses - this field is for user message analysis"
                 }
               },
-              "required": ["sentence", "contextualMeaning", "keyTerms", "alternatives"]
+              "required": ["sentence", "translation", "contextualMeaning", "keyTerms", "alternatives"]
             }
           }
         },
@@ -525,6 +549,10 @@ class AILanguageTutorService {
                 "sentence": {
                   "type": "string",
                   "description": "Individual sentence from user's message"
+                },
+                "translation": {
+                  "type": "string", 
+                  "description": "Literal or idiomatic translation of the sentence"
                 },
                 "keyTerms": {
                   "type": "array",
@@ -576,7 +604,7 @@ class AILanguageTutorService {
                   "description": "Grammar, vocabulary, or usage mistakes found in this sentence"
                 }
               },
-              "required": ["sentence", "contextualMeaning", "keyTerms", "alternatives"]
+              "required": ["sentence", "translation", "contextualMeaning", "keyTerms", "alternatives"]
             }
           }
         },

@@ -53,6 +53,10 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
 
   @override
   Widget build(BuildContext context) {
+
+    bool mistakesExist = widget.sentenceAnalysis.mistakes != null;
+    int? nrOfMistakes = widget.sentenceAnalysis.mistakes?.length;
+
     return Container(
       height: MediaQuery.of(context).size.height * 0.7,
       decoration: const BoxDecoration(
@@ -113,7 +117,20 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
               tabs: [
                 const Tab(text: 'Analysis'), 
                 const Tab(text: 'Create Cloze'), 
-                if (widget.isUserMessage) const Tab(text: 'Improvements',)
+                if (widget.isUserMessage)
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Improvements${mistakesExist && (nrOfMistakes != null && nrOfMistakes > 0) ? ' (${nrOfMistakes.toString()})' : ''}', 
+                          style: TextStyle(
+                            color: mistakesExist && (nrOfMistakes != null && nrOfMistakes > 0) ? Colors.orange : Colors.white70, 
+                            fontSize: (mistakesExist && (nrOfMistakes != null && nrOfMistakes > 0)) ? 12 : null ),
+                        ),
+                      ],
+                    ),
+                  )
               ]
             ),
           ), 
@@ -317,7 +334,9 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
                     child: Center(
                       child: Text(
                         // TODO: Replace this with translation
-                        widget.sentenceAnalysis.contextualMeaning,
+                        widget.sentenceAnalysis.translation,
+                        style: TextStyle(color: Colors.white70),
+                        textAlign: TextAlign.center,
                       ),
                     ),
                   )
@@ -359,10 +378,53 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
   }
 
   Widget _buildImprovementsTab() {
-    
-
-    return Container(
-      
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (widget.sentenceAnalysis.mistakes != null && widget.sentenceAnalysis.mistakes!.isEmpty) ...[
+            Center(
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.thumb_up, 
+                    color: Colors.green,
+                    size: 48,
+                  ), 
+                  const SizedBox(height: 16,), 
+                  const Text(
+                    'Great job!', 
+                    style: TextStyle(
+                      color: Colors.green, 
+                      fontSize: 18, 
+                      fontWeight: FontWeight.bold
+                    ),
+                  ), 
+                  const Text(
+                    'No improvements needed for this sentence.', 
+                    style: TextStyle(color: Colors.white70),
+                    textAlign: TextAlign.center,
+                  )
+                ],
+              ),
+            )
+          ] else ...[
+            const Text(
+              'Suggestions for improvement: ',
+              style: TextStyle(
+                color: Colors.white, 
+                fontSize: 16, 
+                fontWeight: FontWeight.bold,
+              ), 
+            ), 
+            const SizedBox(height: 16,), 
+            ...widget.sentenceAnalysis.mistakes!.map((mistake) => 
+              _buildImprovementSuggestion(mistake)
+            ).toList(),
+          ]
+        ],
+      ),
     );
   }
 
@@ -440,6 +502,74 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
               ),
             ))
           ]
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImprovementSuggestion(Mistake mistake) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.1), 
+        borderRadius: BorderRadius.circular(4), 
+        border: Border.all(color: Colors.orange.withOpacity(0.3))
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start, 
+        children: [
+          // Row(
+          //   children: [
+          //     Container(
+          //       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          //       decoration: BoxDecoration(
+          //         color: Colors.orange, 
+          //         borderRadius: BorderRadius.circular(4)
+          //       ),
+          //       child: Text(
+          //         mistake.type.displayName.toUpperCase(), 
+          //         style: const TextStyle(
+          //           color: Colors.white, 
+          //           fontSize: 10, 
+          //           fontWeight: FontWeight.bold
+          //         ),
+          //       ),
+          //     )
+          //   ],
+          // ), 
+
+          // const SizedBox(height: 8,), 
+          
+          //
+          Row(
+            children: [
+              Text(
+                '"${mistake.error}"', 
+                style: const TextStyle(
+                  color: Colors.orange, 
+                  fontWeight: FontWeight.bold
+                ), 
+              ),
+              Text(
+                ' → ',
+                style: TextStyle(color: Colors.white70),
+              ), 
+              Text(
+                '"${mistake.correction}"', 
+                style: TextStyle(
+                  color: Colors.green, 
+                  fontWeight: FontWeight.bold
+                ),
+              )
+            ],
+          ), 
+
+          const SizedBox(height: 4,), 
+          Text(
+            mistake.explanation, 
+            style: TextStyle(color: Colors.white70, fontSize: 12),
+          )
         ],
       ),
     );

@@ -17,7 +17,7 @@ Widget printClozeSentence(List<String> words, Set<int> selectedWordIndices) {
           return TextSpan(
             text: '_' * word.length + (isFollowedBySelected ? '_' : ' '),
             style: const TextStyle(
-              color: AppColors.primaryText,
+              color: Colors.white,
               fontWeight: FontWeight.bold,
               fontSize: 16,
             ),
@@ -27,7 +27,7 @@ Widget printClozeSentence(List<String> words, Set<int> selectedWordIndices) {
         return TextSpan(
           text: '$word ',
           style: const TextStyle(
-            color: AppColors.primaryText,
+            color: Colors.white,
             fontWeight: FontWeight.normal,
             fontSize: 16,
           ),

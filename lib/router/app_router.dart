@@ -1,3 +1,4 @@
+import 'package:ai_lang_tutor_v2/screens/home/bottom_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -18,7 +19,7 @@ class _AuthNotifier extends ChangeNotifier {
 
 class AppRouter {
   static final GoRouter router = GoRouter(
-    initialLocation: '/', 
+    initialLocation: '/home/home', 
     refreshListenable: _AuthNotifier(),
     redirect: (context, state) {
       final isLoggedIn = Supabase.instance.client.auth.currentUser != null;
@@ -26,7 +27,7 @@ class AppRouter {
 
       // If user is logged in and trying to access auth routes, redirect to home
       if (isLoggedIn && isAuthRoute) {
-        return '/chat';
+        return '/home/home';
       }
 
       // If user is not logged in and trying to access home, redirect to login
@@ -37,13 +38,13 @@ class AppRouter {
       return null; // No redirect needed
     }, 
     routes: [
-      GoRoute(
-        path: '/', 
-        redirect:(context, state) {
-          final isLoggedIn = Supabase.instance.client.auth.currentUser != null;
-          return isLoggedIn ? '/chat' : '/auth/login';
-        },
-      ), 
+      // GoRoute(
+      //   path: '/', 
+      //   redirect:(context, state) {
+      //     final isLoggedIn = Supabase.instance.client.auth.currentUser != null;
+      //     return isLoggedIn ? '/chat' : '/auth/login';
+      //   },
+      // ), 
 
       // Authentication routes
       GoRoute(
@@ -75,11 +76,33 @@ class AppRouter {
       // ),
 
       // Main app routes
-      // GoRoute(
-      //   path: '/home',
-      //   name: 'home',
-      //   builder: (context, state) => const HomeScreenAlt2(),
-      // ),
+      GoRoute(
+        path: '/home/:tab',
+        name: 'home-tab',
+        builder: (context, state) {
+          final tab = state.pathParameters['tab'] ?? 'home';
+          int initialIndex = 0;
+          switch (tab) {
+            case 'collections': 
+              initialIndex =1;
+              break;
+            case 'practice': 
+              initialIndex = 2;
+              break;
+            case 'social': 
+              initialIndex = 3;
+              break;
+            default: 
+              initialIndex = 0;
+          }
+          return BottomNavigation(initialIndex: initialIndex);
+        },
+      ),
+      GoRoute(
+        path: '/home',
+        name: 'home',
+        redirect: (context, state) => '/home/home',
+      ),
       GoRoute(
         path: '/chat',
         name: 'chat',

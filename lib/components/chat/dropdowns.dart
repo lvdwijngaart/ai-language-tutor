@@ -30,7 +30,7 @@ class TutorChatDropdown<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 64,
-      margin: const EdgeInsets.all(AppSpacing.small), 
+      margin: const EdgeInsets.only(right: AppSpacing.small), 
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), 
       decoration: BoxDecoration(
         color: accentColor.withOpacity(0.2), 
