@@ -1,14 +1,23 @@
 import 'package:ai_lang_tutor_v2/constants/app_constants.dart';
+import 'package:ai_lang_tutor_v2/models/database/collection.dart';
+import 'package:ai_lang_tutor_v2/models/enums/app_enums.dart';
+import 'package:ai_lang_tutor_v2/services/supabase/collections/collections_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
-class CollectionsScreen extends StatelessWidget {
-  final double headerSize = 26;
-
+class CollectionsScreen extends StatefulWidget {
+  final Future<List<Collection>> publicCollections;
   const CollectionsScreen({
-    super.key,
-    // Possibly other parameters
+    super.key, 
+    required this.publicCollections
   });
+
+  @override
+  State<CollectionsScreen> createState() => _CollectionsScreenState();
+}
+
+class _CollectionsScreenState extends State<CollectionsScreen> {
+  final double headerSize = 22;
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +29,7 @@ class CollectionsScreen extends StatelessWidget {
             padding: EdgeInsets.all(16),
             child: Column(
               children: [
+                const SizedBox(height: 10),
                 Text(
                   'Collections',
                   style: const TextStyle(
@@ -47,7 +57,20 @@ class CollectionsScreen extends StatelessWidget {
                   const SizedBox(height: 20),
 
                   // List of public Collections
-                  _buildPublicCollectionsList(),
+                  FutureBuilder(
+                    future: widget.publicCollections,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      } else if (snapshot.hasError) {
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      }
+                      final collections = snapshot.data ?? [];
+                      return _buildPublicCollectionsList(
+                        collections: collections,
+                      );
+                    },
+                  ),
                   const SizedBox(height: 20),
                 ],
               ),
@@ -125,12 +148,12 @@ class CollectionsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPublicCollectionsList() {
+  Widget _buildPublicCollectionsList({required List<Collection> collections}) {
     final maxRows = 2;
     final columns = 2;
     final maxItems = maxRows * columns;
 
-    final List<String> collections = ["1", "2", "3", "4"];
+    // final List<String> collections = ["1", "2", "3", "4"];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,14 +178,14 @@ class CollectionsScreen extends StatelessWidget {
             crossAxisCount: 2,
             mainAxisSpacing: 12,
             crossAxisSpacing: 10,
-            childAspectRatio: 1.9,
+            childAspectRatio: 2,
           ),
           itemBuilder: (context, index) {
             final item = collections[index];
             return _buildcollectionButton(
-              icon: Icons.subject,
-              title: 'French Basics',
-              nrOfSentences: 20,
+              icon: item.icon ?? Icons.star,
+              title: item.title,
+              nrOfSentences: item.nrOfSentences,
               onTap: () {},
             );
           },
@@ -181,7 +204,8 @@ class CollectionsScreen extends StatelessWidget {
               //     const Color.fromARGB(255, 58, 255, 183).withOpacity(0.9),
               //   ],
               // ),
-              color: const Color.fromARGB(255, 28, 120, 111),
+              // color: const Color(0xFF1C786F),
+              color: AppColors.secondaryAccent.withOpacity(0.7),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -217,14 +241,22 @@ class CollectionsScreen extends StatelessWidget {
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: AppColors.secondaryAccent.withOpacity(0.3),
+            color: AppColors.cardBackground,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, color: AppColors.secondaryAccent, size: 48),
-              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.all(5),
+                margin: const EdgeInsets.only(top: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.secondaryAccent.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: AppColors.secondaryAccent, size: 32),
+              ),
+              const SizedBox(width: 10),
 
               Expanded(
                 child: Column(
@@ -237,7 +269,7 @@ class CollectionsScreen extends StatelessWidget {
                         title,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 20,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                           height: 1.2,
                         ),

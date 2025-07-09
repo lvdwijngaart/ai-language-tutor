@@ -1,21 +1,21 @@
-enum Language { 
+enum Language {
   spanish('Spanish', '🇪🇸', 'es-ES', '¡Hola!'),
   french('French', '🇫🇷', 'fr-FR', 'Bonjour!'),
   german('German', '🇩🇪', 'de-DE', 'Hallo!'),
   italian('Italian', '🇮🇹', 'it-IT', 'Ciao!'),
   portuguese('Portuguese', '🇵🇹', 'pt-PT', 'Olá!'),
   dutch('Dutch', '🇳🇱', 'nl-NL', 'Hallo!'),
-  chinesePinyin('Chinese (Pinyin)', '🇨🇳', 'zh-CN', '你好!'); 
+  chinesePinyin('Chinese (Pinyin)', '🇨🇳', 'zh-CN', '你好!');
 
   const Language(
-    this.displayName, 
+    this.displayName,
     this.flagEmoji,
-    this.localeCode, 
-    this.greeting
+    this.localeCode,
+    this.greeting,
   );
   final String displayName;
   final String flagEmoji;
-  final String localeCode; 
+  final String localeCode;
   final String greeting;
 
   // Get fallback locales for speech recognition
@@ -37,15 +37,22 @@ enum Language {
         return ['zh-CN', 'zh-TW', 'zh-HK'];
     }
   }
-
 }
 
-enum ProficiencyLevel { 
-  beginner('Beginner'), 
-  intermediate('Intermediate'), 
-  advanced('Advanced'); 
+extension LanguageParsing on Language {
+  static Language fromString(String value) {
+    return Language.values.firstWhere(
+      (e) => e.name == value,
+      orElse: () => throw ArgumentError('Invalid language value: $value'),
+    );
+  }
+}
+
+enum ProficiencyLevel {
+  beginner('Beginner'),
+  intermediate('Intermediate'),
+  advanced('Advanced');
 
   const ProficiencyLevel(this.displayName);
   final String displayName;
 }
-

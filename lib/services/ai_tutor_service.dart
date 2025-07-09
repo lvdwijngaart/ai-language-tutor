@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:ai_lang_tutor_v2/models/ai_response.dart';
-import 'package:ai_lang_tutor_v2/models/app_enums.dart';
-import 'package:ai_lang_tutor_v2/models/chat_message.dart';
-import 'package:ai_lang_tutor_v2/models/sentence_analysis.dart';
+import 'package:ai_lang_tutor_v2/models/other/ai_response.dart';
+import 'package:ai_lang_tutor_v2/models/enums/app_enums.dart';
+import 'package:ai_lang_tutor_v2/models/other/chat_message.dart';
+import 'package:ai_lang_tutor_v2/models/other/sentence_analysis.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';

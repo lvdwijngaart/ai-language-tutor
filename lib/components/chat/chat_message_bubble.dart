@@ -3,8 +3,8 @@
 import 'package:ai_lang_tutor_v2/components/chat/ai_avatar.dart';
 import 'package:ai_lang_tutor_v2/components/chat/user_avatar.dart';
 import 'package:ai_lang_tutor_v2/constants/app_constants.dart';
-import 'package:ai_lang_tutor_v2/models/chat_message.dart';
-import 'package:ai_lang_tutor_v2/models/sentence_analysis.dart';
+import 'package:ai_lang_tutor_v2/models/other/chat_message.dart';
+import 'package:ai_lang_tutor_v2/models/other/sentence_analysis.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 

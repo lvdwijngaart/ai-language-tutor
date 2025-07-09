@@ -1,4 +1,4 @@
-import 'package:ai_lang_tutor_v2/models/Profile.dart';
+import 'package:ai_lang_tutor_v2/models/database/profile.dart';
 import 'package:ai_lang_tutor_v2/services/supabase_client.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 

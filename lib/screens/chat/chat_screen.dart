@@ -8,10 +8,10 @@ import 'package:ai_lang_tutor_v2/components/chat/live_transcript_preview.dart';
 import 'package:ai_lang_tutor_v2/components/chat/loading_indicator.dart';
 import 'package:ai_lang_tutor_v2/components/chat/mic-transcipt/transcript_confirmation.dart';
 import 'package:ai_lang_tutor_v2/constants/chat_constants.dart';
-import 'package:ai_lang_tutor_v2/models/ai_response.dart';
-import 'package:ai_lang_tutor_v2/models/chat_message.dart';
-import 'package:ai_lang_tutor_v2/models/sentence_analysis.dart';
-import 'package:ai_lang_tutor_v2/models/transcript_confirmation_result.dart';
+import 'package:ai_lang_tutor_v2/models/other/ai_response.dart';
+import 'package:ai_lang_tutor_v2/models/other/chat_message.dart';
+import 'package:ai_lang_tutor_v2/models/other/sentence_analysis.dart';
+import 'package:ai_lang_tutor_v2/models/enums/transcript_confirmation_result.dart';
 import 'package:ai_lang_tutor_v2/services/ai_tutor_service.dart';
 import 'package:ai_lang_tutor_v2/services/speech_to_text_service.dart';
 import 'package:flutter/material.dart';
@@ -20,7 +20,7 @@ import 'package:logger/logger.dart';
 import 'dart:developer';
 import '../../components/chat/conversation_starters.dart';
 import '../../constants/app_constants.dart' show AppColors, AppSpacing, AppTextStyles, cardBackground, secondaryAccent;
-import '../../models/app_enums.dart' show Language, ProficiencyLevel;
+import '../../models/enums/app_enums.dart' show Language, ProficiencyLevel;
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key, this.isTestMode = false}); 

@@ -1,7 +1,7 @@
 
 
-import 'package:ai_lang_tutor_v2/models/chat_message.dart';
-import 'package:ai_lang_tutor_v2/models/sentence_analysis.dart';
+import 'package:ai_lang_tutor_v2/models/other/chat_message.dart';
+import 'package:ai_lang_tutor_v2/models/other/sentence_analysis.dart';
 
 class StandardChatMessages {
   static ChatMessage initialMessage = ChatMessage(

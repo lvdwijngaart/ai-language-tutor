@@ -1,7 +1,7 @@
 
 
 import 'package:ai_lang_tutor_v2/constants/app_constants.dart';
-import 'package:ai_lang_tutor_v2/models/app_enums.dart';
+import 'package:ai_lang_tutor_v2/models/enums/app_enums.dart';
 import 'package:flutter/material.dart';
 
 class ConversationStarters extends StatelessWidget{

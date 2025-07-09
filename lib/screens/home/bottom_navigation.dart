@@ -1,18 +1,16 @@
-
-
 import 'package:ai_lang_tutor_v2/constants/app_constants.dart';
+import 'package:ai_lang_tutor_v2/models/database/collection.dart';
+import 'package:ai_lang_tutor_v2/models/enums/app_enums.dart';
 import 'package:ai_lang_tutor_v2/screens/home/collections_screen.dart';
 import 'package:ai_lang_tutor_v2/screens/home/home_screen.dart';
 import 'package:ai_lang_tutor_v2/screens/home/practice_screen.dart';
+import 'package:ai_lang_tutor_v2/services/supabase/collections/collections_service.dart';
 import 'package:flutter/material.dart';
 
-class BottomNavigation extends StatefulWidget{
+class BottomNavigation extends StatefulWidget {
   final int initialIndex;
 
-  const BottomNavigation({
-    super.key, 
-    this.initialIndex = 0
-  });
+  const BottomNavigation({super.key, this.initialIndex = 0});
 
   @override
   State<StatefulWidget> createState() => _BottomNavigationState();
@@ -20,38 +18,71 @@ class BottomNavigation extends StatefulWidget{
 
 class _BottomNavigationState extends State<BottomNavigation> {
   late int _selectedIndex;
+  late PageController _pageController;
 
-  final List<Widget> _screens = const [
-    HomeScreen(), 
-    CollectionsScreen(), 
-    PracticeScreen(), 
-    HomeScreen(), 
-  ];
+  late Future<List<Collection>> _publicCollections;
 
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: _selectedIndex);
+    _publicCollections = CollectionsService.getHighlightCollections(
+      nrOfResults: 4,
+      language: Language.spanish,
+    );
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _onTabTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.ease,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+
+    final List<Widget> _screens = [
+    HomeScreen(),
+    CollectionsScreen(publicCollections: _publicCollections),
+    PracticeScreen(),
+    HomeScreen(),
+  ];
+
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
-      body: IndexedStack(
-        index: _selectedIndex,
+      body: PageView(
+        controller: _pageController,
         children: _screens,
+        onPageChanged: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        physics:
+            const NeverScrollableScrollPhysics(), // Prevent swipe if you want only nav bar control
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: AppColors.cardBackground, 
-          boxShadow: [ 
+          color: AppColors.cardBackground,
+          boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3), 
-              blurRadius: 10, 
-              offset: const Offset(0, -2)
-            ), 
-          ], 
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
         ),
         child: BottomNavigationBar(
           backgroundColor: Colors.transparent,
@@ -60,29 +91,18 @@ class _BottomNavigationState extends State<BottomNavigation> {
           currentIndex: _selectedIndex,
           selectedItemColor: AppColors.electricBlue,
           unselectedItemColor: Colors.white60,
-          onTap: (index) => setState(() => _selectedIndex = index),
+          onTap: _onTabTapped,
           items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
             BottomNavigationBarItem(
-              icon: Icon(Icons.home), 
-              label: 'Home', 
-            ), 
-            BottomNavigationBarItem(
-              icon: Icon(Icons.collections_bookmark), 
-              label: 'Collections'
-            ), 
-            BottomNavigationBarItem(
-              icon: Icon(Icons.quiz), 
-              label: 'Pracitce'
-            ), 
-            BottomNavigationBarItem(
-              icon: Icon(Icons.people),
-              label: 'Social'
-            )
-          ]
+              icon: Icon(Icons.collections_bookmark),
+              label: 'Collections',
+            ),
+            BottomNavigationBarItem(icon: Icon(Icons.quiz), label: 'Practice'),
+            BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Social'),
+          ],
         ),
       ),
     );
-
-    
   }
 }
