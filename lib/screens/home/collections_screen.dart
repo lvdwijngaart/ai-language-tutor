@@ -3,13 +3,15 @@ import 'package:ai_lang_tutor_v2/models/database/collection.dart';
 import 'package:ai_lang_tutor_v2/models/enums/app_enums.dart';
 import 'package:ai_lang_tutor_v2/services/supabase/collections/collections_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
+import 'package:go_router/go_router.dart';
 
 class CollectionsScreen extends StatefulWidget {
+  final Future<List<Collection>> personalCollections;
   final Future<List<Collection>> publicCollections;
   const CollectionsScreen({
-    super.key, 
-    required this.publicCollections
+    super.key,
+    required this.personalCollections,
+    required this.publicCollections,
   });
 
   @override
@@ -50,11 +52,26 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
                 children: [
                   // Challenge button
                   _buildChallengeButton(),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 30),
 
                   // List of user's Collections
-                  _buildUserCollectionsList(),
-                  const SizedBox(height: 20),
+                  FutureBuilder(
+                    future: widget.personalCollections,
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      } else if (snapshot.hasError) {
+                        return Center(child: Text('Error: ${snapshot.error}'));
+                      } else {
+                        final collections = snapshot.data ?? [];
+                        return _buildUserCollectionsList(
+                          collections: collections,
+                        );
+                      }
+                    },
+                  ),
+                  // _buildUserCollectionsList(collections: collec),
+                  const SizedBox(height: 30),
 
                   // List of public Collections
                   FutureBuilder(
@@ -70,7 +87,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
                         collections: collections,
                       );
                     },
-                  ),
+                  ), 
                   const SizedBox(height: 20),
                 ],
               ),
@@ -82,13 +99,12 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
   }
 
   Widget _buildUserCollectionsList({
-    Map<String, dynamic>?
-    map, // TODO: replace with list of collections to be shared
+    required List<Collection> collections, 
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        //
+        // Header
         Text(
           'Your Collections',
           style: TextStyle(
@@ -98,29 +114,46 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        Row(
-          spacing: 16,
-          children: [
-            _buildcollectionButton(
-              icon: Icons.abc,
-              title: 'French Basics',
-              nrOfSentences: 20,
-              onTap: () {},
-            ),
 
-            _buildcollectionButton(
-              icon: Icons.text_decrease,
-              title: 'French basics and shit',
-              nrOfSentences: 20,
-              onTap: () {},
+        // If collection has any records, show these in Grid layout
+        if (collections.isNotEmpty) ...[
+          GridView.builder(
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
+            itemCount: collections.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 10,
+              childAspectRatio: 2,
             ),
-          ],
-        ),
-        const SizedBox(height: 16),
+            itemBuilder: (context, index) {
+              final item = collections[index];
+              return _buildcollectionButton(
+                icon: item.icon ?? Icons.star,
+                title: item.title,
+                nrOfSentences: item.nrOfSentences,
+                onTap: () {},
+              );
+            },
+          ),
+        ],
+        if (collections.isEmpty) ...[
+          Center(
+            child: Text(
+              'No Collections saved yet. Create one or look through the public collections!',
+              style: AppTextStyles.heading3,
+            ),
+          ),
+        ],
+        const SizedBox(height: 12),
 
         // Create new Collection button
         GestureDetector(
-          onTap: () {}, // TODO
+          onTap: () {
+            context.push('/collections/create');
+            setState(() {});
+          }, 
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
@@ -178,7 +211,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
             crossAxisCount: 2,
             mainAxisSpacing: 12,
             crossAxisSpacing: 10,
-            childAspectRatio: 2,
+            childAspectRatio: 1.9,
           ),
           itemBuilder: (context, index) {
             final item = collections[index];
@@ -190,7 +223,7 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
             );
           },
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
 
         // Create new Collection button
         GestureDetector(
@@ -198,13 +231,6 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
-              // gradient: LinearGradient(
-              //   colors: [
-              //     const Color.fromARGB(255, 49, 206, 101).withOpacity(0.9),
-              //     const Color.fromARGB(255, 58, 255, 183).withOpacity(0.9),
-              //   ],
-              // ),
-              // color: const Color(0xFF1C786F),
               color: AppColors.secondaryAccent.withOpacity(0.7),
               borderRadius: BorderRadius.circular(12),
             ),
@@ -235,61 +261,59 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
     required int nrOfSentences,
     required VoidCallback onTap,
   }) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: AppColors.cardBackground,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(5),
-                margin: const EdgeInsets.only(top: 10),
-                decoration: BoxDecoration(
-                  color: AppColors.secondaryAccent.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: AppColors.secondaryAccent, size: 32),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.cardBackground,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              margin: const EdgeInsets.only(bottom: 18),
+              decoration: BoxDecoration(
+                color: AppColors.secondaryAccent.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(8),
               ),
-              const SizedBox(width: 10),
+              child: Icon(icon, color: AppColors.secondaryAccent, size: 22),
+            ),
+            const SizedBox(width: 10),
 
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          height: 1.2,
-                        ),
-                        softWrap: true,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        height: 1.2,
                       ),
+                      softWrap: true,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    Text(
-                      '$nrOfSentences sentences',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
-                        fontSize: 12,
-                      ),
+                  ),
+                  Text(
+                    '$nrOfSentences sentences',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 12,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

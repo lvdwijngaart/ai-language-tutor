@@ -1,15 +1,28 @@
+import 'dart:ui';
+
 import 'package:ai_lang_tutor_v2/constants/app_constants.dart';
 import 'package:ai_lang_tutor_v2/services/supabase/profiles_service.dart';
+import 'package:ai_lang_tutor_v2/services/supabase_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({
     super.key,
     // Possible other states
   });
+
+  @override
+  State<StatefulWidget> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void setState(VoidCallback fn) {
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,13 +46,25 @@ class HomeScreen extends StatelessWidget {
                         fontSize: 16,
                       ),
                     ),
-                    Text(
-                      'l.vd.wijngaart', // TODO: Replace with user's name or smth
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          constraints: BoxConstraints(maxWidth: 270),
+                          child: Text(
+                            supabase.auth.currentUser?.email
+                                    ?.split('@')
+                                    .first ??
+                                'Anonymous user', // TODO: Replace with user's name or smth
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -73,7 +98,7 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 24),
 
             // Quick Actions List
-            _buildQuickActionsList(),
+            _buildQuickActionsList(context),
           ],
         ),
       ),
@@ -308,7 +333,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickActionsList() {
+  Widget _buildQuickActionsList(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -326,7 +351,10 @@ class HomeScreen extends StatelessWidget {
           icon: Icons.add,
           title: 'Create New Collection',
           description: 'Start building your word library',
-          onTap: () => {},
+          onTap: () {
+            context.push('/collections/create');
+            setState(() {});
+          },
         ),
 
         _buildQuickActionButton(
@@ -355,7 +383,7 @@ class HomeScreen extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        onTap: () => {},
+        onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         tileColor: AppColors.cardBackground,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

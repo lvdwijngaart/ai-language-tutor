@@ -5,7 +5,9 @@ import 'package:ai_lang_tutor_v2/screens/home/collections_screen.dart';
 import 'package:ai_lang_tutor_v2/screens/home/home_screen.dart';
 import 'package:ai_lang_tutor_v2/screens/home/practice_screen.dart';
 import 'package:ai_lang_tutor_v2/services/supabase/collections/collections_service.dart';
+import 'package:ai_lang_tutor_v2/services/supabase_client.dart';
 import 'package:flutter/material.dart';
+import 'package:logger/logger.dart';
 
 class BottomNavigation extends StatefulWidget {
   final int initialIndex;
@@ -20,6 +22,7 @@ class _BottomNavigationState extends State<BottomNavigation> {
   late int _selectedIndex;
   late PageController _pageController;
 
+  late Future<List<Collection>> _personalCollections;
   late Future<List<Collection>> _publicCollections;
 
   @override
@@ -27,9 +30,14 @@ class _BottomNavigationState extends State<BottomNavigation> {
     super.initState();
     _selectedIndex = widget.initialIndex;
     _pageController = PageController(initialPage: _selectedIndex);
+    _personalCollections = CollectionsService.getPersonalCollections(
+      userId: supabase.auth.currentUser!.id,
+    );
+    Logger _logger = Logger();
     _publicCollections = CollectionsService.getHighlightCollections(
       nrOfResults: 4,
       language: Language.spanish,
+      userId: supabase.auth.currentUser!.id
     );
   }
 
@@ -52,13 +60,15 @@ class _BottomNavigationState extends State<BottomNavigation> {
 
   @override
   Widget build(BuildContext context) {
-
     final List<Widget> _screens = [
-    HomeScreen(),
-    CollectionsScreen(publicCollections: _publicCollections),
-    PracticeScreen(),
-    HomeScreen(),
-  ];
+      HomeScreen(),
+      CollectionsScreen(
+        personalCollections: _personalCollections,
+        publicCollections: _publicCollections,
+      ),
+      PracticeScreen(),
+      HomeScreen(),
+    ];
 
     return Scaffold(
       backgroundColor: AppColors.darkBackground,

@@ -82,182 +82,184 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.large),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // App Logo/Title
-                const Icon(
-                  Icons.school,
-                  size: 80,
-                  color: AppColors.electricBlue,
-                ),
-                const SizedBox(height: AppSpacing.medium),
-                
-                Text(
-                  'AI Language Tutor',
-                  style: AppTextStyles.heading1,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                
-                Text(
-                  'Sign in to continue learning',
-                  style: AppTextStyles.caption,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.xxl),
-
-                // Email Field
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  style: AppTextStyles.body,
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    labelStyle: AppTextStyles.body,
-                    prefixIcon: const Icon(Icons.email, color: AppColors.electricBlue),
-                    filled: true,
-                    fillColor: AppColors.inputBackground,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.electricBlue, width: 2),
-                    ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.large),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // App Logo/Title
+                  const Icon(
+                    Icons.school,
+                    size: 80,
+                    color: AppColors.electricBlue,
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your email';
-                    }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                      return 'Please enter a valid email';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: AppSpacing.medium),
+                  const SizedBox(height: AppSpacing.medium),
+                  
+                  Text(
+                    'AI Language Tutor',
+                    style: AppTextStyles.heading1,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  
+                  Text(
+                    'Sign in to continue learning',
+                    style: AppTextStyles.caption,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSpacing.xxl),
 
-                // Password Field
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  style: AppTextStyles.body,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    labelStyle: AppTextStyles.body,
-                    prefixIcon: const Icon(Icons.lock, color: AppColors.electricBlue),
-                    suffixIcon: IconButton(
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
-                      icon: Icon(
-                        _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                        color: AppColors.electricBlue,
+                  // Email Field
+                  TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    style: AppTextStyles.body,
+                    decoration: InputDecoration(
+                      labelText: 'Email',
+                      labelStyle: AppTextStyles.body,
+                      prefixIcon: const Icon(Icons.email, color: AppColors.electricBlue),
+                      filled: true,
+                      fillColor: AppColors.inputBackground,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.electricBlue, width: 2),
                       ),
                     ),
-                    filled: true,
-                    fillColor: AppColors.inputBackground,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.electricBlue, width: 2),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
-                    }
-                    if (value.length < 6) {
-                      return 'Password must be at least 6 characters';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: AppSpacing.medium),
-
-                // Forgot Password
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const ResetPasswordScreen()),
-                      );
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your email';
+                      }
+                      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                        return 'Please enter a valid email';
+                      }
+                      return null;
                     },
-                    child: Text(
-                      'Forgot Password?',
-                      style: AppTextStyles.caption.copyWith(color: AppColors.electricBlue),
-                    ),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.large),
+                  const SizedBox(height: AppSpacing.medium),
 
-                // Sign In Button
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _signIn,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.electricBlue,
-                    disabledBackgroundColor: AppColors.disabledColor,
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.medium),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : Text(
-                          'Sign In',
-                          style: AppTextStyles.button,
+                  // Password Field
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    style: AppTextStyles.body,
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      labelStyle: AppTextStyles.body,
+                      prefixIcon: const Icon(Icons.lock, color: AppColors.electricBlue),
+                      suffixIcon: IconButton(
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                        icon: Icon(
+                          _obscurePassword ? Icons.visibility : Icons.visibility_off,
+                          color: AppColors.electricBlue,
                         ),
-                ),
-                const SizedBox(height: AppSpacing.large),
-
-                // Sign Up Link
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "Don't have an account? ",
-                      style: AppTextStyles.caption,
+                      ),
+                      filled: true,
+                      fillColor: AppColors.inputBackground,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.electricBlue, width: 2),
+                      ),
                     ),
-                    TextButton(
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your password';
+                      }
+                      if (value.length < 6) {
+                        return 'Password must be at least 6 characters';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.medium),
+
+                  // Forgot Password
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                          MaterialPageRoute(builder: (context) => const ResetPasswordScreen()),
                         );
                       },
                       child: Text(
-                        'Sign Up',
-                        style: AppTextStyles.caption.copyWith(
-                          color: AppColors.electricBlue,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        'Forgot Password?',
+                        style: AppTextStyles.caption.copyWith(color: AppColors.electricBlue),
                       ),
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                  const SizedBox(height: AppSpacing.large),
+
+                  // Sign In Button
+                  ElevatedButton(
+                    onPressed: _isLoading ? null : _signIn,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.electricBlue,
+                      disabledBackgroundColor: AppColors.disabledColor,
+                      padding: const EdgeInsets.symmetric(vertical: AppSpacing.medium),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : Text(
+                            'Sign In',
+                            style: AppTextStyles.button,
+                          ),
+                  ),
+                  const SizedBox(height: AppSpacing.large),
+
+                  // Sign Up Link
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        "Don't have an account? ",
+                        style: AppTextStyles.caption,
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                          );
+                        },
+                        child: Text(
+                          'Sign Up',
+                          style: AppTextStyles.caption.copyWith(
+                            color: AppColors.electricBlue,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),

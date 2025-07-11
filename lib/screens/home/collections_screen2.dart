@@ -60,7 +60,7 @@ class CollectionsScreen extends StatelessWidget {
 
   Widget _buildUserCollectionsList({
     Map<String, dynamic>?
-    map, // TODO: replace with list of collections to be shared
+    map,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -97,7 +97,7 @@ class CollectionsScreen extends StatelessWidget {
 
         // Create new Collection button
         GestureDetector(
-          onTap: () {}, // TODO
+          onTap: () {}, 
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
@@ -171,7 +171,7 @@ class CollectionsScreen extends StatelessWidget {
 
         // Create new Collection button
         GestureDetector(
-          onTap: () {}, // TODO
+          onTap: () {}, 
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(

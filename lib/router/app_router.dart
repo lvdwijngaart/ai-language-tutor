@@ -1,3 +1,5 @@
+import 'package:ai_lang_tutor_v2/constants/app_transitions.dart';
+import 'package:ai_lang_tutor_v2/screens/collections/add_collection_screen.dart';
 import 'package:ai_lang_tutor_v2/screens/home/bottom_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -19,7 +21,7 @@ class _AuthNotifier extends ChangeNotifier {
 
 class AppRouter {
   static final GoRouter router = GoRouter(
-    initialLocation: '/home/home', 
+    initialLocation: '/home/home',
     refreshListenable: _AuthNotifier(),
     redirect: (context, state) {
       final isLoggedIn = Supabase.instance.client.auth.currentUser != null;
@@ -36,22 +38,22 @@ class AppRouter {
       }
 
       return null; // No redirect needed
-    }, 
+    },
     routes: [
       // GoRoute(
-      //   path: '/', 
+      //   path: '/',
       //   redirect:(context, state) {
       //     final isLoggedIn = Supabase.instance.client.auth.currentUser != null;
       //     return isLoggedIn ? '/chat' : '/auth/login';
       //   },
-      // ), 
+      // ),
 
       // Authentication routes
       GoRoute(
-        path: '/auth/login', 
+        path: '/auth/login',
         name: 'login',
         builder: (context, state) => const LoginScreen(),
-      ), 
+      ),
       GoRoute(
         path: '/auth/register',
         name: 'register',
@@ -83,16 +85,16 @@ class AppRouter {
           final tab = state.pathParameters['tab'] ?? 'home';
           int initialIndex = 0;
           switch (tab) {
-            case 'collections': 
-              initialIndex =1;
+            case 'collections':
+              initialIndex = 1;
               break;
-            case 'practice': 
+            case 'practice':
               initialIndex = 2;
               break;
-            case 'social': 
+            case 'social':
               initialIndex = 3;
               break;
-            default: 
+            default:
               initialIndex = 0;
           }
           return BottomNavigation(initialIndex: initialIndex);
@@ -108,6 +110,13 @@ class AppRouter {
         name: 'chat',
         builder: (context, state) => const ChatScreen(),
       ),
+      GoRoute(
+        path: '/collections/create',
+        name: 'create-new-collection',
+        pageBuilder: (context, state) { 
+          return AppTransitions.slideUptransition(key: state.pageKey, child: AddCollectionScreen());
+        }
+      ),
     ],
 
     // Error page
@@ -121,6 +130,6 @@ class AppRouter {
           ),
         ),
       );
-    }
+    },
   );
 }
