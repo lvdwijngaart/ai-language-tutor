@@ -1,5 +1,6 @@
 import 'package:ai_lang_tutor_v2/constants/app_transitions.dart';
 import 'package:ai_lang_tutor_v2/screens/collections/add_collection_screen.dart';
+import 'package:ai_lang_tutor_v2/screens/collections/sentence_suggestions.dart';
 import 'package:ai_lang_tutor_v2/screens/home/bottom_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -117,6 +118,11 @@ class AppRouter {
           return AppTransitions.slideUptransition(key: state.pageKey, child: AddCollectionScreen());
         }
       ),
+      GoRoute(
+        path: '/collections/create/suggestions', 
+        name: 'sentence-suggestions', 
+        builder: (context, state) => const SentenceSuggestions(),
+      )
     ],
 
     // Error page

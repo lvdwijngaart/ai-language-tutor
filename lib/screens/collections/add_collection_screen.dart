@@ -20,11 +20,14 @@ class _AddCollectionScreenState extends State<AddCollectionScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  IconData? _selectedIcon;
+  IconData? _selectedIcon = iconNameMap.values.first;
   bool isPublic = false;
-  Language language = Language.spanish;
+  Language language = Language
+      .spanish; // TODO: Still have to decide how language will be worked into the whole app
+
   // Get all IconData values from iconNameMap
   final List<IconData> icons = iconNameMap.values.toList();
+
   // State that holds possibly preset options to add to the collection?
 
   @override
@@ -35,6 +38,10 @@ class _AddCollectionScreenState extends State<AddCollectionScreen> {
   }
 
   void createNewCollection() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     try {
       final userId = supabase.auth.currentUser!.id;
       final String collectionResult =
@@ -67,7 +74,7 @@ class _AddCollectionScreenState extends State<AddCollectionScreen> {
               backgroundColor: AppColors.successColor,
             ),
           );
-          Navigator.of(context).pop();
+          context.go('/collections/create/suggestions');
         }
       }
     } catch (e) {
@@ -86,58 +93,82 @@ class _AddCollectionScreenState extends State<AddCollectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.darkBackground,
       appBar: AppBar(
-        title: Text('Create New Collection'),
+        backgroundColor: AppColors.darkBackground,
+        elevation: 0,
+        title: Text(
+          'Create New Collection',
+          style: TextStyle(
+            color: AppColors.secondaryAccent,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         leading: IconButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-          icon: Icon(Icons.arrow_back_ios),
+          onPressed: () => Navigator.of(context).pop(),
+          icon: Icon(Icons.arrow_back_ios, color: AppColors.secondaryAccent),
         ),
       ),
       body: SingleChildScrollView(
-        child: Container(
+        child: Padding(
           padding: const EdgeInsets.all(20),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Title input
                 _buildInputContainer(
                   label: 'Title',
                   controller: _titleController,
+                  isRequired: true,
                 ),
                 const SizedBox(height: 20),
 
+                // Description input
                 _buildInputContainer(
                   label: 'Description',
                   controller: _descriptionController,
+                  isRequired: false,
                   maxLines: 5,
                   minLines: 2,
                   maxLength: 250,
                 ),
                 const SizedBox(height: 26),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Make it public?',
-                      style: TextStyle(color: Colors.white, fontSize: 18),
-                    ),
-                    Switch(
-                      value: isPublic,
-                      onChanged: (bool value) {
-                        setState(() {
-                          isPublic = value;
-                        });
-                      },
-                      activeTrackColor: AppColors.secondaryAccent,
-                      activeColor: Colors.white,
-                      
-                    ),
-                  ],
+                // Public toggle
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBackground,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Make it public?',
+                        style: TextStyle(color: Colors.white, fontSize: 18),
+                      ),
+                      Switch(
+                        value: isPublic,
+                        onChanged: (bool value) {
+                          setState(() {
+                            isPublic = value;
+                          });
+                        },
+                        activeTrackColor: AppColors.secondaryAccent.withOpacity(
+                          0.5,
+                        ),
+                        activeColor: AppColors.secondaryAccent,
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(height: 26),
 
                 // Icon selection
                 _buildIconWrap(icons, (IconData icon) {
@@ -148,22 +179,23 @@ class _AddCollectionScreenState extends State<AddCollectionScreen> {
                 const SizedBox(height: 26),
 
                 // Create Button
-                Center(
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => createNewCollection(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.secondaryAccent,
-                        disabledBackgroundColor: AppColors.disabledColor,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(22),
-                        ),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => createNewCollection(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.secondaryAccent,
+                      disabledBackgroundColor: AppColors.disabledColor,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(22),
                       ),
-                      child: Text(
-                        'Create new Collection',
-                        style: AppTextStyles.heading2,
+                      elevation: 4,
+                    ),
+                    child: Text(
+                      'Create new Collection',
+                      style: AppTextStyles.heading2.copyWith(
+                        color: Colors.white,
                       ),
                     ),
                   ),
@@ -179,49 +211,63 @@ class _AddCollectionScreenState extends State<AddCollectionScreen> {
   Widget _buildInputContainer({
     required String label,
     required TextEditingController controller,
+    required bool isRequired,
     int maxLines = 1,
     int? minLines,
     int? maxLength,
-    // required
   }) {
     return Container(
+      margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.secondaryAccent.withOpacity(0.08),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Label
           Text(
             label,
             style: TextStyle(
               color: AppColors.secondaryAccent.withOpacity(0.7),
               fontSize: 18,
+              fontWeight: FontWeight.bold,
             ),
           ),
           const SizedBox(height: 6),
-
-          // Input field
           TextFormField(
             controller: controller,
+            validator: (value) {
+              if (isRequired && (value == null || value.trim().isEmpty)) {
+                return '$label is required';
+              }
+              return null;
+            },
             maxLines: maxLines,
             minLines: minLines,
             maxLength: maxLength,
             style: const TextStyle(color: Colors.white, fontSize: 18),
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.white54),
+                borderSide: BorderSide(
+                  color: AppColors.secondaryAccent.withOpacity(0.5),
+                ),
               ),
               focusedBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.white54),
+                borderSide: BorderSide(color: AppColors.secondaryAccent),
               ),
               isDense: true,
               contentPadding: EdgeInsets.zero,
+              counterStyle: TextStyle(color: Colors.white54),
             ),
           ),
-          // Description
         ],
       ),
     );
@@ -238,7 +284,7 @@ class _AddCollectionScreenState extends State<AddCollectionScreen> {
         Text(
           'Collection Icon',
           style: TextStyle(
-            color: Colors.white,
+            color: AppColors.secondaryAccent,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -251,19 +297,32 @@ class _AddCollectionScreenState extends State<AddCollectionScreen> {
             final isSelected = icon == selectedIcon;
             return GestureDetector(
               onTap: () => onSelect(icon),
-              child: Container(
-                padding: const EdgeInsets.all(10),
+              child: AnimatedContainer(
+                duration: Duration(milliseconds: 200),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? AppColors.secondaryAccent.withOpacity(0.8)
+                      ? AppColors.secondaryAccent.withOpacity(0.9)
                       : AppColors.cardBackground,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isSelected
+                        ? AppColors.secondaryAccent
+                        : Colors.transparent,
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    if (isSelected)
+                      BoxShadow(
+                        color: AppColors.secondaryAccent.withOpacity(0.2),
+                        blurRadius: 8,
+                        offset: Offset(0, 2),
+                      ),
+                  ],
                 ),
                 child: Icon(
                   icon,
-                  color: isSelected
-                      ? Colors.white.withOpacity(0.8)
-                      : Colors.white70,
+                  color: isSelected ? Colors.white : Colors.white70,
                   size: 42,
                 ),
               ),
