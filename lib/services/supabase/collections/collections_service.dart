@@ -6,8 +6,8 @@ import 'package:ai_lang_tutor_v2/services/supabase_client.dart';
 class CollectionsService {
   static Future<List<Collection>> getHighlightCollections({
     required int nrOfResults,
-    required Language language,
     required String userId,
+    required Language language,
     // Add more?
   }) async {
     final collectionsAlreadySaved =
@@ -18,6 +18,7 @@ class CollectionsService {
         .select()
         .eq('is_public', true)
         .not('id', 'in', collectionsAlreadySaved)
+        .eq('language', language.name)
         .order('saves', ascending: false)
         .limit(nrOfResults);
 
@@ -30,6 +31,7 @@ class CollectionsService {
 
   static Future<List<Collection>> getPersonalCollections({
     required String userId,
+    required Language language
   }) async {
     // Get collectionIds for this user
     final List<String> collectionIds =
@@ -40,25 +42,41 @@ class CollectionsService {
     final collections = await supabase
         .from('collections')
         .select()
+        .eq('language', language.name)
         .inFilter('id', collectionIds);
 
     return (collections as List).map((row) => Collection.fromMap(row)).toList();
   }
 
-  static Future<String> createNewCollection({
+  static Future<Collection> createNewCollection({
     required Collection collection,
+    required String userIdForSave
   }) async {
     try {
-      final result = await supabase
+      final collectionResult = await supabase
           .from('collections')
           .insert(collection.toMap())
           .select();
 
-      if (result.isEmpty) {
+      if (collectionResult.isEmpty) {
         throw Exception('The insertion was not successful. Result is empty. ');
       }
 
-      return result.first['id'];
+      final Collection collectionAdded = Collection.fromMap(collectionResult.first);
+
+      bool addSuccess = false;
+      if (userIdForSave.isNotEmpty && collectionAdded.id != null) {
+        addSuccess = await CollectionsSaveService.createCollectionSave(
+          userId: userIdForSave,
+          collectionId: collectionAdded.id!,
+        );
+      }
+
+      if (!addSuccess) {
+        throw Exception('Saving the collection to user $userIdForSave was not successful');
+      }
+
+      return Collection.fromMap(collectionResult.first);
 
     } catch (e) {
       throw Exception(

@@ -37,6 +37,13 @@ enum Language {
         return ['zh-CN', 'zh-TW', 'zh-HK'];
     }
   }
+
+  static Language fromCode(String code) {
+    return Language.values.firstWhere(
+      (lang) => lang.localeCode == code, 
+      orElse: () => Language.spanish
+    );
+  }
 }
 
 extension LanguageParsing on Language {

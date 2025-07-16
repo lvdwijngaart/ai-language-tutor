@@ -12,11 +12,13 @@ import 'package:ai_lang_tutor_v2/models/other/ai_response.dart';
 import 'package:ai_lang_tutor_v2/models/other/chat_message.dart';
 import 'package:ai_lang_tutor_v2/models/other/sentence_analysis.dart';
 import 'package:ai_lang_tutor_v2/models/enums/transcript_confirmation_result.dart';
+import 'package:ai_lang_tutor_v2/providers/language_provider.dart';
 import 'package:ai_lang_tutor_v2/services/ai_tutor_service.dart';
 import 'package:ai_lang_tutor_v2/services/speech_to_text_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logger/logger.dart';
+import 'package:provider/provider.dart';
 import 'dart:developer';
 import '../../components/chat/conversation_starters.dart';
 import '../../constants/app_constants.dart' show AppColors, AppSpacing, AppTextStyles, cardBackground, secondaryAccent;
@@ -38,8 +40,11 @@ class _ChatScreenState extends State<ChatScreen> {
   final List<ChatMessage> _messages = [];
   bool _isLoading = false;
   bool _isSending = false;
-  Language _targetLanguage = Language.spanish; // Default target language, change to configuration
   ProficiencyLevel _proficiencyLevel = ProficiencyLevel.intermediate; // Default proficiency level, change to configuration
+  // Language _targetLanguage = Language.spanish; // Default target language, change to configuration
+  Language get _targetLanguage {
+    return Provider.of<LanguageProvider>(context, listen: false).selectedLanguage;
+  }
 
   // Speech to text states
   bool _speechEnabled = false; // Change based on configuration
@@ -153,9 +158,11 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // Function to change target language
   void _changeTargetLanguage(Language newLanguage) {
-    setState(() {
-      _targetLanguage = newLanguage;
-    });
+    if (_targetLanguage == newLanguage) return;
+
+    // Update global language state through provider
+    final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
+    languageProvider.changeLanguage(newLanguage);
 
     _messages.add(ChatMessage(
       text: 'Changed the target language to ${newLanguage.displayName}', 
@@ -164,6 +171,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
     // Possibly add a snackbar here
 
+    // Update the chat UI
+    setState(() {});
     _scrollToBottom();
   }
 
@@ -282,7 +291,6 @@ class _ChatScreenState extends State<ChatScreen> {
         if (mounted) {
           setState(() {
             _currentTranscript = result.recognizedWords;
-            // _messageController.text = _currentTranscript;
           });
           _scrollToBottom();
         }
@@ -297,7 +305,6 @@ class _ChatScreenState extends State<ChatScreen> {
         _isListening = success;
         if (!success) {
           _currentTranscript = '';
-          // _messageController.text = '';
         }
       });
 
@@ -421,6 +428,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final languageProvider = Provider.of<LanguageProvider>(context);
+    final targetLanguage = languageProvider.selectedLanguage;
+
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
       appBar: AppBar(
@@ -447,7 +457,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 Expanded(
                   flex: 9,   
                   child: TutorChatDropdown<Language>(
-                    value: _targetLanguage, 
+                    value: targetLanguage, 
                     items: Language.values.map<DropdownMenuItem<Language>>((Language language) {
                       return DropdownMenuItem<Language>(
                         value: language, 
@@ -469,14 +479,9 @@ class _ChatScreenState extends State<ChatScreen> {
                       );
                     }).toList(), 
                     onChanged: (Language? newLanguage) {
-                      if (newLanguage == _targetLanguage) return; // No change, do nothing
-
-                      if (newLanguage != null) {
-                        setState(() {
-                          _changeTargetLanguage(newLanguage);
-                          _logger.i('Target Language changed to: ${newLanguage.displayName}');
-                        });
-                      }
+                      if (newLanguage != null && newLanguage != targetLanguage) {
+                        _changeTargetLanguage(newLanguage);
+                      } 
                     }, 
                     itemBuilder: (BuildContext context) {
                       return Language.values.map<Widget>((Language language) {

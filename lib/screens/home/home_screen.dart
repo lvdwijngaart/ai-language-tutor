@@ -1,11 +1,15 @@
 import 'dart:ui';
 
+import 'package:ai_lang_tutor_v2/components/home/language_selector.dart';
 import 'package:ai_lang_tutor_v2/constants/app_constants.dart';
+import 'package:ai_lang_tutor_v2/models/enums/app_enums.dart';
+import 'package:ai_lang_tutor_v2/providers/language_provider.dart';
 import 'package:ai_lang_tutor_v2/services/supabase/profiles_service.dart';
 import 'package:ai_lang_tutor_v2/services/supabase_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -13,95 +17,154 @@ class HomeScreen extends StatefulWidget {
     super.key,
     // Possible other states
   });
-
+  
   @override
   State<StatefulWidget> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  @override
-  void setState(VoidCallback fn) {
-    super.initState();
-  }
+
+  // @override
+  // void setState(VoidCallback fn) {
+  //   super.initState();
+  // }
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Top header with greeting
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Consumer<LanguageProvider>(
+      builder: (context, languageProvider, child) {
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                // Top header with greeting
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Good evening!', // TODO: Replace with time of day
-                      style: const TextStyle(
-                        color: Colors.white60,
-                        fontSize: 16,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Good evening!', // TODO: Replace with time of day
+                          style: const TextStyle(
+                            color: Colors.white60,
+                            fontSize: 16,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Container(
+                              constraints: BoxConstraints(maxWidth: 180),
+                              child: Text(
+                                supabase.auth.currentUser?.email
+                                        ?.split('@')
+                                        .first ??
+                                    'Anonymous user', // TODO: Replace with user's name or smth
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                     Row(
                       children: [
-                        Container(
-                          constraints: BoxConstraints(maxWidth: 270),
-                          child: Text(
-                            supabase.auth.currentUser?.email
-                                    ?.split('@')
-                                    .first ??
-                                'Anonymous user', // TODO: Replace with user's name or smth
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
+                        // Language Selector
+                        CompactLanguageSelector(),
+                        const SizedBox(width: 10),
+
+                        // Settings button
+                        PopupMenuButton(
+                          onSelected: (String value) async {
+                            switch (value) {
+                              case 'settings': 
+                                context.go('/settings');
+                                break;
+                              case 'profile': 
+                                context.go('/profile');
+                                break;
+                              case 'logout': 
+                                await supabase.auth.signOut();
+                                break;
+                            }
+                          },
+                          icon: Icon(Icons.settings, color: Colors.white, size: 30),
+                          color: AppColors.cardBackground,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(color: AppColors.electricBlue.withOpacity(0.3)),
                           ),
-                        ),
+                          itemBuilder: (BuildContext popupMenuContext) => [
+                            PopupMenuItem<String>(
+                              value: 'settings',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.settings, color: AppColors.electricBlue, size: 20),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Settings',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem<String>(
+                              value: 'profile',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.person, color: AppColors.electricBlue, size: 20),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Profile',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem<String>(
+                              value: 'logout',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.logout, color: Colors.red, size: 20),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Log Out',
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ]
+                        )
                       ],
                     ),
                   ],
                 ),
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => context.go('/settings'),
-                      icon: Icon(Icons.settings, color: Colors.white, size: 30),
-                      tooltip: 'Settings',
-                    ),
-                    const SizedBox(width: 10),
-                    IconButton(
-                      onPressed: () async {
-                        await Supabase.instance.client.auth.signOut();
-                      },
-                      icon: Icon(Icons.logout, color: Colors.white, size: 30),
-                      tooltip: 'Log out',
-                    ),
-                  ],
-                ),
+                const SizedBox(height: 24),
+
+                // Build Menu and Buttons
+                _buildActionButtons(context),
+                const SizedBox(height: 24),
+
+                // Progress view
+                _buildProgressOverview(),
+                const SizedBox(height: 24),
+
+                // Quick Actions List
+                _buildQuickActionsList(context),
               ],
-            ),
-            const SizedBox(height: 24),
-
-            // Build Menu and Buttons
-            _buildActionButtons(context),
-            const SizedBox(height: 24),
-
-            // Progress view
-            _buildProgressOverview(),
-            const SizedBox(height: 24),
-
-            // Quick Actions List
-            _buildQuickActionsList(context),
-          ],
-        ),
-      ),
+            ), 
+          )
+        );
+      }
     );
   }
 

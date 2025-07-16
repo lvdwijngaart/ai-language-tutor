@@ -1,6 +1,10 @@
+import 'package:ai_lang_tutor_v2/models/enums/app_enums.dart';
+import 'package:ai_lang_tutor_v2/providers/collections_provider.dart';
+import 'package:ai_lang_tutor_v2/providers/language_provider.dart';
 import 'package:ai_lang_tutor_v2/router/app_router.dart';
 import 'package:dart_openai/dart_openai.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'constants/app_constants.dart';
@@ -27,21 +31,38 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'AI Language Tutor',
-      theme: ThemeData(
-        colorScheme: ColorScheme.dark(
-          background: AppColors.darkBackground,
-          primary: AppColors.electricBlue,
-          secondary: AppColors.secondaryAccent,
-          surface: AppColors.cardBackground,
-          error: AppColors.errorColor,
+    return MultiProvider(
+      providers: [
+        // Language Provider
+        ChangeNotifierProvider(create: (_) => LanguageProvider()), 
+
+        // Collections provider that listens to language changes
+        ChangeNotifierProxyProvider<LanguageProvider, CollectionsProvider>(
+          create: (context) => CollectionsProvider(), 
+          update: (context, languageProvider, collectionsProvider) {
+            collectionsProvider!.loadCollections(languageProvider.selectedLanguage);
+            return collectionsProvider;
+          } 
         ),
-        scaffoldBackgroundColor: AppColors.darkBackground,
-        useMaterial3: true,
+
+        // More global providers later
+      ], 
+      child: MaterialApp.router(
+        title: 'AI Language Tutor',
+        theme: ThemeData(
+          colorScheme: ColorScheme.dark(
+            background: AppColors.darkBackground,
+            primary: AppColors.electricBlue,
+            secondary: AppColors.secondaryAccent,
+            surface: AppColors.cardBackground,
+            error: AppColors.errorColor,
+          ),
+          scaffoldBackgroundColor: AppColors.darkBackground,
+          useMaterial3: true,
+        ),
+        routerConfig: AppRouter.router,
+        debugShowCheckedModeBanner: false,
       ),
-      routerConfig: AppRouter.router,
-      debugShowCheckedModeBanner: false,
     );
   }
 }

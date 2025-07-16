@@ -1,106 +1,79 @@
 import 'package:ai_lang_tutor_v2/constants/app_constants.dart';
 import 'package:ai_lang_tutor_v2/models/database/collection.dart';
 import 'package:ai_lang_tutor_v2/models/enums/app_enums.dart';
+import 'package:ai_lang_tutor_v2/providers/collections_provider.dart';
+import 'package:ai_lang_tutor_v2/providers/language_provider.dart';
 import 'package:ai_lang_tutor_v2/services/supabase/collections/collections_service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
-class CollectionsScreen extends StatefulWidget {
-  final Future<List<Collection>> personalCollections;
-  final Future<List<Collection>> publicCollections;
-  const CollectionsScreen({
-    super.key,
-    required this.personalCollections,
-    required this.publicCollections,
-  });
-
-  @override
-  State<CollectionsScreen> createState() => _CollectionsScreenState();
-}
-
-class _CollectionsScreenState extends State<CollectionsScreen> {
+class CollectionsScreen extends StatelessWidget {
   final double headerSize = 22;
+  
+  const CollectionsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: EdgeInsets.all(16),
-            child: Column(
-              children: [
-                const SizedBox(height: 10),
-                Text(
-                  'Collections',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
+    return Consumer2<LanguageProvider, CollectionsProvider>(
+      builder: (context, languageProvider, collectionsProvider, child) {
+        return SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Title
+              Container(
+                padding: EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 10),
+                    Text(
+                      'Collections',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+
+                      // Challenge button
+                      _buildChallengeButton(),
+                      const SizedBox(height: 30),
+
+                      // List of user's Collections
+                      _buildUserCollectionsList(context: context, collectionsProvider: collectionsProvider),
+                      const SizedBox(height: 30),
+
+                      // List of public Collections
+                      _buildPublicCollectionsList(context: context, collectionsProvider: collectionsProvider),
+                      const SizedBox(height: 20),
+                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
-
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Challenge button
-                  _buildChallengeButton(),
-                  const SizedBox(height: 30),
-
-                  // List of user's Collections
-                  FutureBuilder(
-                    future: widget.personalCollections,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      } else if (snapshot.hasError) {
-                        return Center(child: Text('Error: ${snapshot.error}'));
-                      } else {
-                        final collections = snapshot.data ?? [];
-                        return _buildUserCollectionsList(
-                          collections: collections,
-                        );
-                      }
-                    },
-                  ),
-                  // _buildUserCollectionsList(collections: collec),
-                  const SizedBox(height: 30),
-
-                  // List of public Collections
-                  FutureBuilder(
-                    future: widget.publicCollections,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      } else if (snapshot.hasError) {
-                        return Center(child: Text('Error: ${snapshot.error}'));
-                      }
-                      final collections = snapshot.data ?? [];
-                      return _buildPublicCollectionsList(
-                        collections: collections,
-                      );
-                    },
-                  ), 
-                  const SizedBox(height: 20),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+              )
+            ]
+          )
+        );            
+      }
     );
   }
 
   Widget _buildUserCollectionsList({
-    required List<Collection> collections, 
+    required BuildContext context,
+    required CollectionsProvider collectionsProvider
   }) {
+    final personalCollections = collectionsProvider.personalCollections;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -114,84 +87,157 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
           ),
         ),
         const SizedBox(height: 8),
-
-        // If collection has any records, show these in Grid layout
-        if (collections.isNotEmpty) ...[
-          GridView.builder(
-            shrinkWrap: true,
-            physics: NeverScrollableScrollPhysics(),
-            itemCount: collections.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 10,
-              childAspectRatio: 2,
-            ),
-            itemBuilder: (context, index) {
-              final item = collections[index];
-              return _buildcollectionButton(
-                icon: item.icon ?? Icons.star,
-                title: item.title,
-                nrOfSentences: item.nrOfSentences,
-                onTap: () {},
-              );
-            },
-          ),
-        ],
-        if (collections.isEmpty) ...[
+        
+        if (collectionsProvider.isLoadingPersonal) ...[
           Center(
-            child: Text(
-              'No Collections saved yet. Create one or look through the public collections!',
-              style: AppTextStyles.heading3,
-            ),
-          ),
-        ],
-        const SizedBox(height: 12),
-
-        // Create new Collection button
-        GestureDetector(
-          onTap: () {
-            context.push('/collections/create');
-            setState(() {});
-          }, 
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.cardBackground,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
+            child: Column(
               children: [
-                Icon(Icons.add, color: Colors.white, size: 32),
-                const SizedBox(width: 20),
-
+                CircularProgressIndicator(color: Colors.white), 
+                const SizedBox(height: 8), 
                 Text(
-                  'Create New Collection',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                  'Loading your collections...', 
+                  style: TextStyle(
+                    color: Colors.white70, 
+                    fontSize: 14
                   ),
-                ),
+                )
               ],
             ),
+          )
+        ]
+
+        else if (collectionsProvider.personalError != null) ...[
+          Center(
+            child: Column(
+              children: [
+                Icon(
+                  Icons.error_outline, 
+                  color: AppColors.errorColor, 
+                  size: 48
+                ), 
+                const SizedBox(height: 8), 
+                Text(
+                  'Error loading collections', 
+                  style: TextStyle(
+                    color: AppColors.errorColor, 
+                    fontSize: 16, 
+                    fontWeight: FontWeight.bold
+                  ),
+                ), 
+                const SizedBox(height: 4), 
+                Text(
+                  collectionsProvider.personalError!, 
+                  style: TextStyle(
+                    color: Colors.white70, 
+                    fontSize: 12, 
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ), 
+                const SizedBox(height: 12), 
+                ElevatedButton(
+                  onPressed: () {
+                    final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
+                    collectionsProvider.refresh(languageProvider.selectedLanguage);
+                  }, 
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.secondaryAccent, 
+                    foregroundColor: Colors.white
+                  ),
+                  child: Text('Retry')
+                )
+              ]
+            )
+          )
+        ]
+
+        else ...[
+          // If collection has any records, show these in Grid layout
+          if (personalCollections.isNotEmpty) ...[
+            GridView.builder(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              itemCount: personalCollections.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 10,
+                childAspectRatio: 2,
+              ),
+              itemBuilder: (context, index) {
+                final item = personalCollections[index];
+                return _buildcollectionButton(
+                  icon: item.icon ?? Icons.star,
+                  title: item.title,
+                  nrOfSentences: item.nrOfSentences,
+                  onTap: () {},
+                );
+              },
+            ),
+          ],
+          if (personalCollections.isEmpty) ...[
+            Center(
+              child: Text(
+                'No Collections saved yet. Create one or look through the public collections!',
+                style: AppTextStyles.heading3,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+
+          // Create new Collection button
+          GestureDetector(
+            onTap: () async {
+              final result = await context.push('/collections/create');
+
+              if (result == 'created') {
+                final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
+                collectionsProvider.refresh(languageProvider.selectedLanguage);
+              }
+            }, 
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.cardBackground,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.add, color: Colors.white, size: 32),
+                  const SizedBox(width: 20),
+
+                  Text(
+                    'Create New Collection',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
+        ]
       ],
     );
   }
 
-  Widget _buildPublicCollectionsList({required List<Collection> collections}) {
+  Widget _buildPublicCollectionsList({
+    required BuildContext context, 
+    required CollectionsProvider collectionsProvider
+  }) {
     final maxRows = 2;
     final columns = 2;
     final maxItems = maxRows * columns;
 
-    // final List<String> collections = ["1", "2", "3", "4"];
+    final publicCollections = collectionsProvider.publicCollections;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        //
+        // Header
         Text(
           'Public Collections',
           style: TextStyle(
@@ -201,31 +247,99 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          itemCount: collections.length > maxItems
-              ? maxItems
-              : collections.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 10,
-            childAspectRatio: 1.9,
+
+
+        if (collectionsProvider.isLoadingPublic) ...[
+          Center(
+            child: Column(
+              children: [
+                CircularProgressIndicator(color: Colors.white), 
+                const SizedBox(height: 8), 
+                Text(
+                  'Loading public collections...', 
+                  style: TextStyle(
+                    color: Colors.white70, 
+                    fontSize: 14
+                  ),
+                )
+              ],
+            ),
+          )
+        ]
+
+        else if (collectionsProvider.publicError != null) ...[
+          Center(
+            child: Column(
+              children: [
+                Icon(
+                  Icons.error_outline, 
+                  color: AppColors.errorColor, 
+                  size: 48
+                ), 
+                const SizedBox(height: 8), 
+                Text(
+                  'Error loading collections', 
+                  style: TextStyle(
+                    color: AppColors.errorColor, 
+                    fontSize: 16, 
+                    fontWeight: FontWeight.bold
+                  ),
+                ), 
+                const SizedBox(height: 4), 
+                Text(
+                  collectionsProvider.publicError!, 
+                  style: TextStyle(
+                    color: Colors.white70, 
+                    fontSize: 12, 
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ), 
+                const SizedBox(height: 12), 
+                ElevatedButton(
+                  onPressed: () {
+                    final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
+                    collectionsProvider.refresh(languageProvider.selectedLanguage);
+                  }, 
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.secondaryAccent, 
+                    foregroundColor: Colors.white
+                  ),
+                  child: Text('Retry')
+                )
+              ]
+            )
+          )
+        ]
+
+        else ...[
+          GridView.builder(
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
+            itemCount: publicCollections.length > maxItems
+                ? maxItems
+                : publicCollections.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 10,
+              childAspectRatio: 1.9,
+            ),
+            itemBuilder: (context, index) {
+              final item = publicCollections[index];
+              return _buildcollectionButton(
+                icon: item.icon ?? Icons.star,
+                title: item.title,
+                nrOfSentences: item.nrOfSentences,
+                onTap: () {},
+              );
+            },
           ),
-          itemBuilder: (context, index) {
-            final item = collections[index];
-            return _buildcollectionButton(
-              icon: item.icon ?? Icons.star,
-              title: item.title,
-              nrOfSentences: item.nrOfSentences,
-              onTap: () {},
-            );
-          },
-        ),
+        ],
         const SizedBox(height: 12),
 
-        // Create new Collection button
+        // Find Public Collection button
         GestureDetector(
           onTap: () {}, // TODO
           child: Container(
