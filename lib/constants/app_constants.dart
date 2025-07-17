@@ -16,6 +16,12 @@ class AppColors {
 }
 
 class AppTextStyles {
+  static const TextStyle pageHeader = TextStyle(
+    color: Colors.white,
+    fontSize: 32,
+    fontWeight: FontWeight.bold,
+  );
+
   static const TextStyle heading1 = TextStyle(
     fontSize: 28,
     fontWeight: FontWeight.bold,

@@ -29,11 +29,7 @@ class CollectionsScreen extends StatelessWidget {
                     const SizedBox(height: 10),
                     Text(
                       'Collections',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: AppTextStyles.pageHeader
                     ),
                   ],
                 ),
@@ -155,26 +151,12 @@ class CollectionsScreen extends StatelessWidget {
         else ...[
           // If collection has any records, show these in Grid layout
           if (personalCollections.isNotEmpty) ...[
-            GridView.builder(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              itemCount: personalCollections.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 10,
-                childAspectRatio: 2,
-              ),
-              itemBuilder: (context, index) {
-                final item = personalCollections[index];
-                return _buildcollectionButton(
-                  icon: item.icon ?? Icons.star,
-                  title: item.title,
-                  nrOfSentences: item.nrOfSentences,
-                  onTap: () {},
-                );
-              },
-            ),
+            ...personalCollections.map((collection) => _buildcollectionButton(
+            icon: collection.icon ?? Icons.star, 
+            title: collection.title, 
+            nrOfSentences: collection.nrOfSentences, 
+            onTap: () {}    // TODO
+          ))
           ],
           if (personalCollections.isEmpty) ...[
             Center(
@@ -184,7 +166,7 @@ class CollectionsScreen extends StatelessWidget {
               ),
             ),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: 5),
 
           // Create new Collection button
           GestureDetector(
@@ -314,34 +296,20 @@ class CollectionsScreen extends StatelessWidget {
         ]
 
         else ...[
-          GridView.builder(
-            shrinkWrap: true,
-            physics: NeverScrollableScrollPhysics(),
-            itemCount: publicCollections.length > maxItems
-                ? maxItems
-                : publicCollections.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 10,
-              childAspectRatio: 1.9,
-            ),
-            itemBuilder: (context, index) {
-              final item = publicCollections[index];
-              return _buildcollectionButton(
-                icon: item.icon ?? Icons.star,
-                title: item.title,
-                nrOfSentences: item.nrOfSentences,
-                onTap: () {},
-              );
-            },
-          ),
+          ...publicCollections.map((collection) => _buildcollectionButton(
+            icon: collection.icon ?? Icons.star, 
+            title: collection.title, 
+            nrOfSentences: collection.nrOfSentences, 
+            onTap: () {}      // TODO
+          ))
         ],
-        const SizedBox(height: 12),
+        const SizedBox(height: 5),
 
         // Find Public Collection button
         GestureDetector(
-          onTap: () {}, // TODO
+            onTap: () {
+            context.push('/collections/public-collections');
+            },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
@@ -378,7 +346,8 @@ class CollectionsScreen extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        margin: EdgeInsets.only(bottom: 10),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
         decoration: BoxDecoration(
           color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(12),
@@ -388,7 +357,6 @@ class CollectionsScreen extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.all(8),
-              margin: const EdgeInsets.only(bottom: 18),
               decoration: BoxDecoration(
                 color: AppColors.secondaryAccent.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(8),
@@ -402,20 +370,17 @@ class CollectionsScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        height: 1.2,
-                      ),
-                      softWrap: true,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      height: 1.2,
                     ),
+                    softWrap: true,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     '$nrOfSentences sentences',

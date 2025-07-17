@@ -1,7 +1,10 @@
 import 'package:ai_lang_tutor_v2/constants/app_transitions.dart';
 import 'package:ai_lang_tutor_v2/models/database/collection.dart';
 import 'package:ai_lang_tutor_v2/screens/collections/add_collection_screen.dart';
+import 'package:ai_lang_tutor_v2/screens/collections/public_collections_screen.dart';
 import 'package:ai_lang_tutor_v2/screens/collections/sentence_suggestions.dart';
+import 'package:ai_lang_tutor_v2/screens/collections/single_collection_screen.dart';
+import 'package:ai_lang_tutor_v2/screens/error_screen.dart';
 import 'package:ai_lang_tutor_v2/screens/home/bottom_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -125,6 +128,30 @@ class AppRouter {
         builder: (context, state) {
           final collection = state.extra as Collection;
           return SentenceSuggestions(collection: collection);
+        }
+      ), 
+      GoRoute(
+        path: '/collections/public-collections', 
+        name: 'public-collections',
+        builder: (context, state) {
+          return PublicCollectionsScreen();
+        }
+      ), 
+      GoRoute(
+        path: '/collections/:id/view',
+        name: 'single-collection-view', 
+        builder: (context, state) {
+          final String? collectionId = state.pathParameters['id'];
+
+          if (collectionId == null || collectionId.isEmpty) {
+            return ErrorScreen(
+              title: 'Collection Not Found', 
+              message: 'The collection ID is missing or invalid', 
+              showGoBackButton: true
+            );
+          }
+
+          return SingleCollectionScreen(collectionId: collectionId);
         }
       )
     ],

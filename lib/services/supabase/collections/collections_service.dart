@@ -84,4 +84,78 @@ class CollectionsService {
       );
     }
   }
+
+  // ✅ Search public collections with pagination
+  static Future<List<Collection>> searchPublicCollections({
+    required String searchTerm,
+    required String categoryFilter,
+    required Language language,
+    required String userId,
+    int page = 0,
+    int pageSize = 20,
+  }) async {
+    try {
+      dynamic queryBuilder = supabase
+          .from('collections')
+          .select()
+          .eq('language', language.name)
+          .eq('is_public', true)
+          .neq('created_by', userId);
+
+      // ✅ Apply search filter on server
+      if (searchTerm.isNotEmpty) {
+        queryBuilder = queryBuilder.or('title.ilike.%$searchTerm%,description.ilike.%$searchTerm%');
+      }
+
+      // Apply category sorting and pagination
+      final offset = page * pageSize;
+      
+      // TODO: Fix this: popular = amount of saves, etc
+      switch (categoryFilter) {
+        case 'popular':
+          queryBuilder = queryBuilder
+              .order('nr_of_sentences', ascending: false)
+              .range(offset, offset + pageSize - 1);
+          break;
+        case 'recent':
+          queryBuilder = queryBuilder
+              .order('created_at', ascending: false)
+              .range(offset, offset + pageSize - 1);
+          break;
+        case 'featured':
+          queryBuilder = queryBuilder
+              .eq('is_featured', true)
+              .order('created_at', ascending: false)
+              .range(offset, offset + pageSize - 1);
+          break;
+        case 'all':
+        default:
+          queryBuilder = queryBuilder
+              .order('created_at', ascending: false)
+              .range(offset, offset + pageSize - 1);
+          break;
+      }
+
+      final result = await queryBuilder;
+
+      return (result as List).map((row) => Collection.fromMap(row)).toList();
+    } catch (e) {
+      throw Exception('Error searching public collections: $e');
+    }
+  }
+
+  // ✅ Get single collection by ID
+  static Future<Collection> getCollectionById(String id) async {
+    try {
+      final result = await supabase
+          .from('collections')
+          .select()
+          .eq('id', id)
+          .single(); // Get single record
+
+      return Collection.fromMap(result);
+    } catch (e) {
+      throw Exception('Error getting collection: $e');
+    }
+  }
 }
