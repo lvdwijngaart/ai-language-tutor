@@ -96,4 +96,21 @@ class SentencesService {
       throw Exception('Error getting sentences for collection with JOIN: $e');
     }
   }
+
+  // ✅ Insert a single sentence and return its ID
+  static Future<String> insertSentence({
+    required Sentence sentence
+  }) async {
+    try {
+      final sentenceResult = await supabase
+          .from('sentences')
+          .insert(sentence.toMap())
+          .select()
+          .single();
+
+      return sentenceResult['id'] as String;
+    } catch (e) {
+      throw Exception('Error inserting sentence: $e');
+    }
+  }
 }

@@ -155,7 +155,7 @@ class CollectionsScreen extends StatelessWidget {
             icon: collection.icon ?? Icons.star, 
             title: collection.title, 
             nrOfSentences: collection.nrOfSentences, 
-            onTap: () {}    // TODO
+            onTap: () => context.push('/collections/${collection.id}/view')
           ))
           ],
           if (personalCollections.isEmpty) ...[
@@ -300,7 +300,7 @@ class CollectionsScreen extends StatelessWidget {
             icon: collection.icon ?? Icons.star, 
             title: collection.title, 
             nrOfSentences: collection.nrOfSentences, 
-            onTap: () {}      // TODO
+            onTap: () => context.push('/collections/${collection.id}/view')      // TODO
           ))
         ],
         const SizedBox(height: 5),

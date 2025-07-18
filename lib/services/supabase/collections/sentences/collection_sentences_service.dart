@@ -1,5 +1,3 @@
-
-
 import 'package:ai_lang_tutor_v2/services/supabase_client.dart';
 
 class CollectionSentencesService {
@@ -34,6 +32,30 @@ class CollectionSentencesService {
     }
 
     return false;
+  }
+
+  // ✅ Add a single sentence to a collection
+  static Future<bool> addSentenceToCollection({
+    required String sentenceId, 
+    required String collectionId,
+  }) async {
+    try {
+      final addResult = await supabase
+          .from('collection_sentences')
+          .insert({
+            'collection_id': collectionId,
+            'sentence_id': sentenceId, 
+          })
+          .select();
+
+      if (addResult.isEmpty) {
+        throw Exception('Failed to add sentence to collection - no results returned');
+      }
+
+      return true;
+    } catch (e) {
+      throw Exception('Error adding sentence to collection: $e');
+    }
   }
 
 }

@@ -1,12 +1,14 @@
-
-
 import 'package:ai_lang_tutor_v2/constants/app_constants.dart';
+import 'package:ai_lang_tutor_v2/models/database/collection.dart';
 import 'package:ai_lang_tutor_v2/models/database/sentence.dart';
 import 'package:ai_lang_tutor_v2/models/enums/app_enums.dart';
-import 'package:ai_lang_tutor_v2/models/other/chat_message.dart';
 import 'package:ai_lang_tutor_v2/models/other/sentence_analysis.dart';
+import 'package:ai_lang_tutor_v2/providers/collections_provider.dart';
+import 'package:ai_lang_tutor_v2/services/supabase/collections/sentences/collection_sentences_service.dart';
+import 'package:ai_lang_tutor_v2/services/supabase/collections/sentences/sentences_service.dart';
 import 'package:ai_lang_tutor_v2/utils/print_cloze_sentence.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 
 // Enum for word states
@@ -42,10 +44,6 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
   Set<int> _selectedWordIndices = {};
   List<String> _words = [];
   Sentence? sentence;
-  
-  // Add these properties to your state class
-  int? _selectionStart;
-  int? _selectionEnd;
 
 
 
@@ -57,8 +55,14 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
       length: widget.isUserMessage ? 3 : 2, 
       vsync: this
     );
-    // TODO: Make sure punctuation is not kept in the words
-    _words = widget.sentenceAnalysis.sentence.split(' ');
+    
+    // ✅ Clean up words (remove punctuation and empty strings)
+    _words = widget.sentenceAnalysis.sentence
+        .split(' ')
+        .where((word) => word.trim().isNotEmpty)
+        .map((word) => word.replaceAll(RegExp(r'[^\w\s]'), '')) // Remove punctuation
+        .where((word) => word.isNotEmpty)
+        .toList();
   }
 
   @override
@@ -583,10 +587,49 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
     );
   }
 
-  void _saveClozeExercise() {
-    // TODO: Implement
+  void _saveClozeExercise() async {
+    if (sentence == null) return;
 
-    
+    try {
+      // Show collection picker dialog
+      final selectedCollection = await _showCollectionPickerDialog();
+      
+      if (selectedCollection != null) {
+        // Show loading indicator
+        _showLoadingDialog();
+        
+        // Insert the sentence into the database
+        final sentenceId = await SentencesService.insertSentence(sentence: sentence!);
+        
+        // Link the sentence to the selected collection
+        final success = await CollectionSentencesService.addSentenceToCollection(
+          sentenceId: sentenceId,
+          collectionId: selectedCollection.id!,
+        );
+        
+        // Hide loading indicator
+        Navigator.of(context).pop();
+        
+        if (success) {
+          // Show success message
+          _showSuccessDialog(selectedCollection.title);
+          
+          // Clear the selection
+          setState(() {
+            _selectedWordIndices.clear();
+            sentence = null;
+          });
+        } else {
+          _showErrorDialog('Failed to save sentence to collection');
+        }
+      }
+    } catch (e) {
+      // Hide loading indicator if it's showing
+      if (Navigator.canPop(context)) {
+        Navigator.of(context).pop();
+      }
+      _showErrorDialog('Error saving sentence: $e');
+    }
   }
 
 
@@ -619,8 +662,6 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
       if (_selectedWordIndices.isEmpty) {
         // First selection
         _selectedWordIndices.add(index);
-        _selectionStart = index;
-        _selectionEnd = index;
       } else if (_selectedWordIndices.contains(index)) {
         // Clicking on selected word - remove it and adjust selection
         _removeWordFromSelection(index);
@@ -642,26 +683,12 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
     if (index == minSelected) {
       // Removing from start
       _selectedWordIndices.remove(index);
-      if (_selectedWordIndices.isNotEmpty) {
-        _selectionStart = _selectedWordIndices.reduce((a, b) => a < b ? a : b);
-      }
     } else if (index == maxSelected) {
       // Removing from end
       _selectedWordIndices.remove(index);
-      if (_selectedWordIndices.isNotEmpty) {
-        _selectionEnd = _selectedWordIndices.reduce((a, b) => a > b ? a : b);
-      }
     } else {
-      // Removing from middle - this would break contiguity, so don't allow it
-      // Or split the selection - for simplicity, let's clear and restart
+      // Removing from middle - clear and restart for simplicity
       _selectedWordIndices.clear();
-      _selectionStart = null;
-      _selectionEnd = null;
-    }
-    
-    if (_selectedWordIndices.isEmpty) {
-      _selectionStart = null;
-      _selectionEnd = null;
     }
   }
 
@@ -673,11 +700,9 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
     if (index == minSelected - 1) {
       // Extending to the left
       _selectedWordIndices.add(index);
-      _selectionStart = index;
     } else if (index == maxSelected + 1) {
       // Extending to the right
       _selectedWordIndices.add(index);
-      _selectionEnd = index;
     }
     // Ignore clicks on non-adjacent words
   }
@@ -723,30 +748,51 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
       return;
     }
     
-    // Calculate character positions
-    int startChar = 0;
-    int endChar = 0;
+    // ✅ Work with original sentence to find character positions
+    final originalSentence = widget.sentenceAnalysis.sentence;
     
-    // Find the start character position
     int minIndex = _selectedWordIndices.reduce((a, b) => a < b ? a : b);
     int maxIndex = _selectedWordIndices.reduce((a, b) => a > b ? a : b);
     
+    // ✅ Calculate start position by finding the cleaned word in original sentence
+    int startChar = 0;
     for (int i = 0; i < minIndex; i++) {
-      startChar += _words[i].length + 1; // +1 for space
+      // Find this cleaned word in the original sentence starting from startChar
+      final cleanedWord = _words[i];
+      final wordIndex = originalSentence.indexOf(cleanedWord, startChar);
+      if (wordIndex != -1) {
+        startChar = wordIndex + cleanedWord.length;
+        // Skip any spaces after this word
+        while (startChar < originalSentence.length && originalSentence[startChar] == ' ') {
+          startChar++;
+        }
+      }
     }
     
-    endChar = startChar;
+    // ✅ Find start of first selected word
+    final firstSelectedWord = _words[minIndex];
+    final wordStart = originalSentence.indexOf(firstSelectedWord, startChar);
+    if (wordStart == -1) {
+      sentence = null;
+      return;
+    }
+    
+    // ✅ Calculate end position
+    int endChar = wordStart;
     for (int i = minIndex; i <= maxIndex; i++) {
-      endChar += _words[i].length;
-      if (i < maxIndex) endChar += 1; // +1 for space between words
+      final cleanedWord = _words[i];
+      final wordIndex = originalSentence.indexOf(cleanedWord, endChar);
+      if (wordIndex != -1) {
+        endChar = wordIndex + cleanedWord.length;
+      }
     }
     
     sentence = Sentence(
-      text: widget.sentenceAnalysis.sentence,
+      text: originalSentence,
       translation: widget.sentenceAnalysis.translation,
-      clozeStartChar: startChar,
+      clozeStartChar: wordStart,
       clozeEndChar: endChar,
-      language: Language.spanish, // You'll need to get this from context
+      language: Language.spanish, // You might want to get this from context
       createdAt: DateTime.now(),
     );
   }
@@ -758,4 +804,381 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
     return printClozeSentence(sentence: sentence!, showAsBlank: true);
   }
 
+  // ✅ Show collection picker dialog
+  Future<Collection?> _showCollectionPickerDialog() async {
+    return showDialog<Collection>(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: AppColors.cardBackground,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.8,
+            height: MediaQuery.of(context).size.height * 0.6,
+            padding: EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    Icon(Icons.collections_bookmark, color: AppColors.electricBlue),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Choose Collection',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: Icon(Icons.close, color: Colors.white70),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 16),
+                
+                // Collections list
+                Expanded(
+                  child: Consumer<CollectionsProvider>(
+                    builder: (context, provider, child) {
+                      if (provider.isLoadingPersonal) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              CircularProgressIndicator(color: AppColors.electricBlue),
+                              SizedBox(height: 16),
+                              Text('Loading collections...', style: TextStyle(color: Colors.white70)),
+                            ],
+                          ),
+                        );
+                      }
+                      
+                      if (provider.personalError != null) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.error_outline, size: 48, color: Colors.red),
+                              SizedBox(height: 16),
+                              Text('Error loading collections', style: TextStyle(color: Colors.red)),
+                              SizedBox(height: 8),
+                              Text(provider.personalError!, style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            ],
+                          ),
+                        );
+                      }
+                      
+                      if (provider.personalCollections.isEmpty) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.collections_bookmark_outlined, size: 48, color: Colors.grey),
+                              SizedBox(height: 16),
+                              Text('No collections found', style: TextStyle(color: Colors.white70)),
+                              SizedBox(height: 8),
+                              Text('Create a collection first to save sentences', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                            ],
+                          ),
+                        );
+                      }
+                      
+                      return ListView.builder(
+                        itemCount: provider.personalCollections.length,
+                        itemBuilder: (context, index) {
+                          final collection = provider.personalCollections[index];
+                          return _buildCollectionTile(collection);
+                        },
+                      );
+                    },
+                  ),
+                ),
+                
+                SizedBox(height: 16),
+                
+                // Create new collection button
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      // TODO: Implement create new collection
+                      Navigator.of(context).pop();
+                      _showCreateCollectionDialog();
+                    },
+                    icon: Icon(Icons.add, color: AppColors.electricBlue),
+                    label: Text(
+                      'Create New Collection',
+                      style: TextStyle(color: AppColors.electricBlue),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: AppColors.electricBlue),
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+  
+  // ✅ Build collection tile for selection
+  Widget _buildCollectionTile(Collection collection) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        contentPadding: EdgeInsets.all(12),
+        tileColor: AppColors.darkBackground,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: Colors.white12),
+        ),
+        leading: Container(
+          padding: EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppColors.electricBlue.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            collection.icon ?? Icons.star,
+            color: AppColors.electricBlue,
+            size: 20,
+          ),
+        ),
+        title: Text(
+          collection.title,
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (collection.description?.isNotEmpty == true) ...[
+              SizedBox(height: 4),
+              Text(
+                collection.description!,
+                style: TextStyle(color: Colors.white70, fontSize: 12),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+            SizedBox(height: 4),
+            Text(
+              '${collection.nrOfSentences} sentences',
+              style: TextStyle(color: Colors.white54, fontSize: 11),
+            ),
+          ],
+        ),
+        trailing: Icon(
+          Icons.arrow_forward_ios,
+          color: Colors.white38,
+          size: 16,
+        ),
+        onTap: () {
+          Navigator.of(context).pop(collection);
+        },
+      ),
+    );
+  }
+  
+  // ✅ Show loading dialog
+  void _showLoadingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: AppColors.cardBackground,
+          child: Container(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: AppColors.electricBlue),
+                SizedBox(height: 16),
+                Text(
+                  'Saving sentence...',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+  
+  // ✅ Show success dialog
+  void _showSuccessDialog(String collectionTitle) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: AppColors.cardBackground,
+          child: Container(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.check_circle,
+                  color: Colors.green,
+                  size: 48,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Success!',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Sentence saved to "$collectionTitle"',
+                  style: TextStyle(color: Colors.white70),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                    ),
+                    child: Text(
+                      'OK',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+  
+  // ✅ Show error dialog
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: AppColors.cardBackground,
+          child: Container(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  color: Colors.red,
+                  size: 48,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Error',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  message,
+                  style: TextStyle(color: Colors.white70),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                    ),
+                    child: Text(
+                      'OK',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+  
+  // ✅ Show create collection dialog (placeholder)
+  void _showCreateCollectionDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: AppColors.cardBackground,
+          child: Container(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.info,
+                  color: AppColors.electricBlue,
+                  size: 48,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Coming Soon',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Creating new collections from here will be available in a future update.',
+                  style: TextStyle(color: Colors.white70),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.electricBlue,
+                    ),
+                    child: Text(
+                      'OK',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
