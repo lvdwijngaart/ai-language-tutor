@@ -1,10 +1,20 @@
 
 
 import 'package:ai_lang_tutor_v2/constants/app_constants.dart';
+import 'package:ai_lang_tutor_v2/models/database/sentence.dart';
+import 'package:ai_lang_tutor_v2/models/enums/app_enums.dart';
 import 'package:ai_lang_tutor_v2/models/other/chat_message.dart';
 import 'package:ai_lang_tutor_v2/models/other/sentence_analysis.dart';
 import 'package:ai_lang_tutor_v2/utils/print_cloze_sentence.dart';
 import 'package:flutter/material.dart';
+
+
+// Enum for word states
+enum WordState {
+  unselected,    // Grey - not selectable
+  selectable,    // Lighter - can be selected to extend range
+  selected,      // Blue - currently selected
+}
 
 class SentenceAnalysisWidget extends StatefulWidget {
   final SentenceAnalysis sentenceAnalysis;
@@ -31,6 +41,12 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
   // Set to keep track of selected words for Cloze functionality
   Set<int> _selectedWordIndices = {};
   List<String> _words = [];
+  Sentence? sentence;
+  
+  // Add these properties to your state class
+  int? _selectionStart;
+  int? _selectionEnd;
+
 
 
   @override
@@ -260,36 +276,27 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
               children: _words.asMap().entries.map((entry) {
                 int index = entry.key;
                 String word = entry.value;
-                bool isSelected = _selectedWordIndices.contains(index);
+                
+                WordState wordState = _getWordState(index);
 
                 return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      if (isSelected) {
-                        _selectedWordIndices.remove(index);
-                      } else {
-                        _selectedWordIndices.add(index);
-                      }
-                    });
-                  },
+                  onTap: () => _handleWordTap(index),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: isSelected 
-                        ? AppColors.electricBlue
-                        : AppColors.cardBackground, 
+                      color: _getWordBackgroundColor(wordState), 
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: isSelected 
-                          ? AppColors.electricBlue
-                          : const Color(0xFF3A3A3A)
+                        color: _getWordBorderColor(wordState)
                       )
                     ),
                     child: Text(
                       word, 
                       style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.white70, 
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal
+                        color: _getWordTextColor(wordState), 
+                        fontWeight: wordState == WordState.selected
+                            ? FontWeight.bold
+                            : FontWeight.normal
                       ),
                     ),
                   ),
@@ -325,15 +332,16 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Cloze sentence
-                  printClozeSentence(_words, _selectedWordIndices),
+                  Center(
+                    // Cloze sentence
+                    child: _buildClozePreview(),
+                  ),
+                  // printClozeSentence(sentence: sentence!, _selectedWordIndices),
                   
-                  // Add more widgets here as needed
                   // Translation sentence   
                   Container(
                     child: Center(
                       child: Text(
-                        // TODO: Replace this with translation
                         widget.sentenceAnalysis.translation,
                         style: TextStyle(color: Colors.white70),
                         textAlign: TextAlign.center,
@@ -577,5 +585,177 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
 
   void _saveClozeExercise() {
     // TODO: Implement
+
+    
   }
+
+
+  // ✅ Determine the state of each word
+  WordState _getWordState(int index) {
+    if (_selectedWordIndices.isEmpty) {
+      // No selection yet - all words are selectable
+      return WordState.selectable;
+    }
+    
+    if (_selectedWordIndices.contains(index)) {
+      return WordState.selected;
+    }
+    
+    // Determine selection bounds
+    int minSelected = _selectedWordIndices.reduce((a, b) => a < b ? a : b);
+    int maxSelected = _selectedWordIndices.reduce((a, b) => a > b ? a : b);
+    
+    // Word is selectable if it's adjacent to the current selection
+    if (index == minSelected - 1 || index == maxSelected + 1) {
+      return WordState.selectable;
+    }
+    
+    return WordState.unselected;
+  }
+
+  // ✅ Handle word tap with contiguous selection logic
+  void _handleWordTap(int index) {
+    setState(() {
+      if (_selectedWordIndices.isEmpty) {
+        // First selection
+        _selectedWordIndices.add(index);
+        _selectionStart = index;
+        _selectionEnd = index;
+      } else if (_selectedWordIndices.contains(index)) {
+        // Clicking on selected word - remove it and adjust selection
+        _removeWordFromSelection(index);
+      } else {
+        // Extending selection
+        _extendSelection(index);
+      }
+      
+      // Update the sentence object
+      _updateSentenceObject();
+    });
+  }
+
+  // ✅ Remove a word from selection (maintaining contiguity)
+  void _removeWordFromSelection(int index) {
+    int minSelected = _selectedWordIndices.reduce((a, b) => a < b ? a : b);
+    int maxSelected = _selectedWordIndices.reduce((a, b) => a > b ? a : b);
+    
+    if (index == minSelected) {
+      // Removing from start
+      _selectedWordIndices.remove(index);
+      if (_selectedWordIndices.isNotEmpty) {
+        _selectionStart = _selectedWordIndices.reduce((a, b) => a < b ? a : b);
+      }
+    } else if (index == maxSelected) {
+      // Removing from end
+      _selectedWordIndices.remove(index);
+      if (_selectedWordIndices.isNotEmpty) {
+        _selectionEnd = _selectedWordIndices.reduce((a, b) => a > b ? a : b);
+      }
+    } else {
+      // Removing from middle - this would break contiguity, so don't allow it
+      // Or split the selection - for simplicity, let's clear and restart
+      _selectedWordIndices.clear();
+      _selectionStart = null;
+      _selectionEnd = null;
+    }
+    
+    if (_selectedWordIndices.isEmpty) {
+      _selectionStart = null;
+      _selectionEnd = null;
+    }
+  }
+
+  // ✅ Extend selection to include new word
+  void _extendSelection(int index) {
+    int minSelected = _selectedWordIndices.reduce((a, b) => a < b ? a : b);
+    int maxSelected = _selectedWordIndices.reduce((a, b) => a > b ? a : b);
+    
+    if (index == minSelected - 1) {
+      // Extending to the left
+      _selectedWordIndices.add(index);
+      _selectionStart = index;
+    } else if (index == maxSelected + 1) {
+      // Extending to the right
+      _selectedWordIndices.add(index);
+      _selectionEnd = index;
+    }
+    // Ignore clicks on non-adjacent words
+  }
+
+  // ✅ Color methods
+  Color _getWordBackgroundColor(WordState state) {
+    switch (state) {
+      case WordState.selected:
+        return AppColors.electricBlue;
+      case WordState.selectable:
+        return AppColors.cardBackground.withOpacity(0.8);
+      case WordState.unselected:
+        return AppColors.cardBackground.withOpacity(0.3);
+    }
+  }
+
+  Color _getWordBorderColor(WordState state) {
+    switch (state) {
+      case WordState.selected:
+        return AppColors.electricBlue;
+      case WordState.selectable:
+        return Colors.white38;
+      case WordState.unselected:
+        return Colors.white12;
+    }
+  }
+
+  Color _getWordTextColor(WordState state) {
+    switch (state) {
+      case WordState.selected:
+        return Colors.white;
+      case WordState.selectable:
+        return Colors.white70;
+      case WordState.unselected:
+        return Colors.white30;
+    }
+  }
+
+  // ✅ Update sentence object with current selection
+  void _updateSentenceObject() {
+    if (_selectedWordIndices.isEmpty) {
+      sentence = null;
+      return;
+    }
+    
+    // Calculate character positions
+    int startChar = 0;
+    int endChar = 0;
+    
+    // Find the start character position
+    int minIndex = _selectedWordIndices.reduce((a, b) => a < b ? a : b);
+    int maxIndex = _selectedWordIndices.reduce((a, b) => a > b ? a : b);
+    
+    for (int i = 0; i < minIndex; i++) {
+      startChar += _words[i].length + 1; // +1 for space
+    }
+    
+    endChar = startChar;
+    for (int i = minIndex; i <= maxIndex; i++) {
+      endChar += _words[i].length;
+      if (i < maxIndex) endChar += 1; // +1 for space between words
+    }
+    
+    sentence = Sentence(
+      text: widget.sentenceAnalysis.sentence,
+      translation: widget.sentenceAnalysis.translation,
+      clozeStartChar: startChar,
+      clozeEndChar: endChar,
+      language: Language.spanish, // You'll need to get this from context
+      createdAt: DateTime.now(),
+    );
+  }
+
+  // ✅ Build cloze preview
+  Widget _buildClozePreview() {
+    if (sentence == null) return SizedBox.shrink();
+    
+    return printClozeSentence(sentence: sentence!, showAsBlank: true);
+  }
+
 }

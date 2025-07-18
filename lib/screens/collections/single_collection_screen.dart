@@ -498,7 +498,7 @@ class _SingleCollectionScreenState extends State<SingleCollectionScreen>
               ),
             ),
           ),
-          title: printClozeSentence2(sentence),
+          title: printClozeSentence(sentence: sentence, showAsBlank: false),
           subtitle: Text(
             sentence.translation,
             style: TextStyle(

@@ -4,7 +4,7 @@ import 'package:ai_lang_tutor_v2/constants/app_constants.dart';
 import 'package:ai_lang_tutor_v2/models/database/sentence.dart';
 import 'package:flutter/material.dart';
 
-Widget printClozeSentence(List<String> words, Set<int> selectedWordIndices) {
+Widget printClozeSentenceOmittingCloze(List<String> words, Set<int> selectedWordIndices) {
 
   return RichText(
     text: TextSpan(
@@ -38,8 +38,7 @@ Widget printClozeSentence(List<String> words, Set<int> selectedWordIndices) {
   );
 }
 
-
-Widget printClozeSentence2(Sentence sentence) {
+Widget printClozeSentence({required Sentence sentence, required bool showAsBlank}) {
   // Handle edge cases
   if (sentence.clozeStartChar < 0 || 
       sentence.clozeEndChar < 0 || 
@@ -77,16 +76,19 @@ Widget printClozeSentence2(Sentence sentence) {
             ),
           ),
         
-        // ✅ The cloze (underlined text instead of underscores)
+        // The cloze (underlined text instead of underscores)
+        
         TextSpan(
-          text: clozeText,
+          text: showAsBlank 
+              ? '_'*clozeText.length
+              : clozeText,
           style: TextStyle(
-            color: Colors.white, // Highlight color
+            color: Colors.white, 
             fontWeight: FontWeight.bold,
             fontSize: 16,
             decoration: TextDecoration.underline,
             decorationColor: Colors.white,
-            decorationThickness: 2.0, // ✅ Make underline more visible
+            decorationThickness: 2.0, 
           ),
         ),
         
