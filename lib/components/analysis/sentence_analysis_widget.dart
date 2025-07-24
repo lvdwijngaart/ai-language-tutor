@@ -1,3 +1,4 @@
+import 'package:ai_lang_tutor_v2/components/analysis/analysis_tab.dart';
 import 'package:ai_lang_tutor_v2/components/sentences/cloze_preview_widget.dart';
 import 'package:ai_lang_tutor_v2/components/sentences/cloze_selection_widget.dart';
 import 'package:ai_lang_tutor_v2/constants/app_constants.dart';
@@ -43,9 +44,7 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   // Set to keep track of selected words for Cloze functionality
-  Set<int> _selectedWordIndices = {};
-  List<String> _words = [];
-  Sentence? sentence;
+  Sentence? _sentence;
 
   @override
   void initState() {
@@ -56,15 +55,6 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
       vsync: this,
     );
 
-    // Clean up words (remove punctuation and empty strings)
-    _words = widget.sentenceAnalysis.sentence
-        .split(' ')
-        .where((word) => word.trim().isNotEmpty)
-        .map(
-          (word) => word.replaceAll(RegExp(r'[^\w\s]'), ''),
-        ) // Remove punctuation
-        .where((word) => word.isNotEmpty)
-        .toList();
   }
 
   @override
@@ -174,7 +164,7 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
             child: TabBarView(
               controller: _tabController,
               children: [
-                _buildAnalysisTab(),
+                AnalysisTab(sentenceAnalysis: widget.sentenceAnalysis),
                 _buildClozeTab(),
                 if (widget.isUserMessage) _buildImprovementsTab(),
               ],
@@ -185,96 +175,8 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
     );
   }
 
-  Widget _buildAnalysisTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 100),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Original message
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.darkBackground,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF3A3A3A)),
-            ),
-            child: Text(
-              widget.sentenceAnalysis.sentence,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
-            ),
-          ),
 
-          const SizedBox(height: 20),
-
-          // TODO: Build sections
-          _buildSection(
-            title: 'Meaning in Context',
-            icon: Icons.lightbulb_outline,
-            color: Colors.orange,
-            child: Text(widget.sentenceAnalysis.contextualMeaning),
-          ),
-
-          if (widget.sentenceAnalysis.keyTerms.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            _buildSection(
-              title: 'Key terms',
-              icon: Icons.book,
-              color: Colors.blue,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: widget.sentenceAnalysis.keyTerms
-                      .map((def) => _buildKeyTerm(def))
-                      .toList(),
-                ),
-              ),
-            ),
-          ],
-
-          if (widget.sentenceAnalysis.alternatives.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            _buildSection(
-              title: 'Alternative Expressions',
-              icon: Icons.swap_horiz,
-              color: Colors.green,
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: widget.sentenceAnalysis.alternatives
-                    .map(
-                      (alt) => Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: Colors.green.withOpacity(0.3),
-                          ),
-                        ),
-                        child: Text(
-                          alt,
-                          style: const TextStyle(
-                            color: Colors.green,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
+  // Cloze Tab
   Widget _buildClozeTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -292,9 +194,7 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
             text: widget.sentenceAnalysis.sentence, 
             onSelectionChanged: (selection, words, startChar, endChar) {
               setState(() {
-                _selectedWordIndices = selection;
-                _words = words;
-                _updateSentenceObject(startChar, endChar);
+                _updateSentenceObject(selection, startChar, endChar);
               });
             }
           ),
@@ -302,7 +202,7 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
           const SizedBox(height: 20),
 
           // Preview section
-          if (sentence != null) ...[
+          if (_sentence != null) ...[
             Container(
               padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
               child: Text(
@@ -316,7 +216,7 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
             ),
 
             // Preview Container
-            ClozePreviewWidget(sentence: sentence!),
+            ClozePreviewWidget(sentence: _sentence!),
             const SizedBox(height: 24),
           ],
 
@@ -324,7 +224,7 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _selectedWordIndices.isEmpty
+              onPressed: _sentence == null
                   ? null
                   : _saveClozeExercise,
               style: ElevatedButton.styleFrom(
@@ -335,7 +235,7 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
                 ),
               ),
               child: Text(
-                _selectedWordIndices.isEmpty
+                _sentence == null
                     ? 'Select words to save'
                     : 'Save to Collection',
                 style: TextStyle(
@@ -350,6 +250,7 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
     );
   }
 
+  // Improvements Tab
   Widget _buildImprovementsTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -392,87 +293,6 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
             ...widget.sentenceAnalysis.mistakes!
                 .map((mistake) => _buildImprovementSuggestion(mistake))
                 .toList(),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSection({
-    required String title,
-    required IconData icon,
-    required Color color,
-    required Widget child,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, color: color, size: 18),
-            const SizedBox(width: 8),
-            Text(
-              title,
-              style: TextStyle(
-                color: color,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        child,
-      ],
-    );
-  }
-
-  Widget _buildKeyTerm(KeyTerm term) {
-    return Container(
-      width: 150,
-      margin: const EdgeInsets.only(right: 12),
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            term.termText, // term
-            style: const TextStyle(
-              color: Colors.blue,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            term.definition, // definition
-            style: const TextStyle(color: Colors.white, fontSize: 14),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            term.contextualMeaning, // Contextual meaning
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
-          ),
-          if (term.examples != null && term.examples!.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            ...term.examples!.map(
-              (example) => Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  '• $example',
-                  style: const TextStyle(
-                    color: Colors.white60,
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ),
-            ),
           ],
         ],
       ),
@@ -570,7 +390,7 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
   }
 
   void _saveClozeExercise() async {
-    if (sentence == null) return;
+    if (_sentence == null) return;
 
     try {
       // Show collection picker dialog
@@ -582,7 +402,7 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
 
         // Insert the sentence into the database
         final Sentence createdSentence = await SentencesService.insertSentence(
-          sentence: sentence!,
+          sentence: _sentence!,
         );
 
         // Link the sentence to the selected collection
@@ -601,8 +421,7 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
 
           // Clear the selection
           setState(() {
-            _selectedWordIndices.clear();
-            sentence = null;
+            _sentence = null;
           });
         } else {
           _showErrorDialog('Failed to save sentence to collection');
@@ -618,13 +437,13 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
   }
 
   // Update sentence object with current selection
-  void _updateSentenceObject(int? startChar, int? endChar) {
-    if (_selectedWordIndices.isEmpty || startChar == null || endChar == null) {
-      sentence = null;
+  void _updateSentenceObject(Set<int> selection, int? startChar, int? endChar) {
+    if (selection.isEmpty || startChar == null || endChar == null) {
+      _sentence = null;
       return;
     }
 
-    sentence = Sentence(
+    _sentence = Sentence(
       text: widget.sentenceAnalysis.sentence, 
       translation: widget.sentenceAnalysis.translation, 
       language: widget.language, 
@@ -636,9 +455,9 @@ class _SentenceAnalysisWidgetState extends State<SentenceAnalysisWidget>
 
   // Build cloze preview
   Widget _buildClozePreview() {
-    if (sentence == null) return SizedBox.shrink();
+    if (_sentence == null) return SizedBox.shrink();
 
-    return printClozeSentence(sentence: sentence!, showAsBlank: true);
+    return printClozeSentence(sentence: _sentence!, showAsBlank: true);
   }
 
   // Show collection picker dialog
