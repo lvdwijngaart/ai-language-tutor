@@ -26,9 +26,9 @@ class Sentence {
   factory Sentence.fromMap(Map<String, dynamic> json) {
     try {
       final sentenceId = json['id'];
-      if (sentenceId == null || sentenceId is! String || sentenceId.isEmpty) {
-        throw ArgumentError('Sentence ID must be non-null and a string. ');
-      }
+      // if (sentenceId == null || sentenceId is! String || sentenceId.isEmpty) {
+      //   throw ArgumentError('Sentence ID must be non-null and a string. ');
+      // }
 
       return Sentence(
         id: sentenceId,

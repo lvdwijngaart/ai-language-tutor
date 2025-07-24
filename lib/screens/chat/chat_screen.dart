@@ -15,6 +15,7 @@ import 'package:ai_lang_tutor_v2/models/enums/transcript_confirmation_result.dar
 import 'package:ai_lang_tutor_v2/providers/language_provider.dart';
 import 'package:ai_lang_tutor_v2/services/ai_tutor_service.dart';
 import 'package:ai_lang_tutor_v2/services/speech_to_text_service.dart';
+import 'package:ai_lang_tutor_v2/utils/logger.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:logger/logger.dart';
@@ -34,7 +35,6 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final Logger _logger = Logger();
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final List<ChatMessage> _messages = [];
@@ -73,10 +73,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // Initialize speech recognition
   void _initSpeech() async {
-    _logger.i('Initializing speech recognition...');
+    logger.i('Initializing speech recognition...');
     bool initialized = await SpeechToTextService.initialize(
       onError: (error) {
-        _logger.e('Speech recognition error: ${error.errorMsg}');
+        logger.e('Speech recognition error: ${error.errorMsg}');
         if (mounted) {
           // Show different messages based on error message
           // TODO: Something might be going wrong here because when I start the mic and don't talk, it should say something like "No speech detected" but it says speech recognition is not available
@@ -107,7 +107,7 @@ class _ChatScreenState extends State<ChatScreen> {
         }
       },
       onStatus: (status) {
-        _logger.i('Speech recognition status: $status');
+        logger.i('Speech recognition status: $status');
         if (mounted) {
           if (status == 'notListening') {
             setState(() {
@@ -120,7 +120,7 @@ class _ChatScreenState extends State<ChatScreen> {
           }
         }
       }, 
-      logger: _logger, 
+      logger: logger, 
     );
 
     // If speech is initialized successfully, update state
@@ -130,9 +130,9 @@ class _ChatScreenState extends State<ChatScreen> {
       });
       
       if (initialized) {
-        _logger.i('Speech recognition initialized successfully');
+        logger.i('Speech recognition initialized successfully');
       } else {
-        _logger.w('Speech recognition initialization failed');
+        logger.w('Speech recognition initialization failed');
       }
     }
   }
@@ -153,7 +153,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void _addInitialMessage() {
     ChatMessage initialMessage = StandardChatMessages.initialMessage;
     _messages.add(initialMessage);
-    _logger.i('Initial message added: $initialMessage');
+    logger.i('Initial message added: $initialMessage');
   }
 
   // Function to change target language
@@ -208,7 +208,7 @@ class _ChatScreenState extends State<ChatScreen> {
   // Handle sending a conversation starter
   void _sendConversationStarter(String starter) {
     // Format and send to AI
-    _logger.i('Sending conversation starter: $starter');
+    logger.i('Sending conversation starter: $starter');
 
     // Formulate the message that will be sent to the 
     String message = 'Please start a conversation with me about the following topic: $starter';
@@ -218,7 +218,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // Show sentence analysis panel
   void _showSentenceAnalysis(SentenceAnalysis analysis, ChatMessage message) {
-    _logger.i('Showing sentence analysis for: ${analysis.sentence}');
+    logger.i('Showing sentence analysis for: ${analysis.sentence}');
     // Build analysis panel
     // SentenceAnalysisWidget();
 
@@ -239,7 +239,8 @@ class _ChatScreenState extends State<ChatScreen> {
           isUserMessage: message.isUserMessage, 
           onClose: () {
             Navigator.of(context).pop();
-          }
+          }, 
+          language: _targetLanguage,
         ),
       ),
     );
@@ -256,9 +257,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // Start listening for speech
   void _startListening() async {
-    _logger.i('Starting speech recognition...');
+    logger.i('Starting speech recognition...');
     if (!_speechEnabled) {
-      _logger.w('Speech recognition is not enabled, cannot start listening.');
+      logger.w('Speech recognition is not enabled, cannot start listening.');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -287,7 +288,7 @@ class _ChatScreenState extends State<ChatScreen> {
       //Or it should recognize that the target language is not spoken, and tell the user to try and speak the target language.
       localeId: locale,
       onResult: (result) {
-        _logger.i('Speech recognition received: ${result.recognizedWords}');
+        logger.i('Speech recognition received: ${result.recognizedWords}');
         if (mounted) {
           setState(() {
             _currentTranscript = result.recognizedWords;
@@ -295,10 +296,10 @@ class _ChatScreenState extends State<ChatScreen> {
           _scrollToBottom();
         }
       },
-      logger: _logger,
+      logger: logger,
     );
 
-    _logger.i('Start listening success: $success');
+    logger.i('Start listening success: $success');
 
     if (mounted) {
       setState(() {
@@ -323,13 +324,13 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     }
 
-    _logger.i('Updated state - isListening: $_isListening');
+    logger.i('Updated state - isListening: $_isListening');
   }
 
   // Stop listening for speech
   void _stopListening() async {
-    _logger.i('Stopping speech recognition...');
-    await SpeechToTextService.stopListening(_logger);
+    logger.i('Stopping speech recognition...');
+    await SpeechToTextService.stopListening(logger);
 
     if (mounted) {
       setState(() {
@@ -338,7 +339,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
       // If there is a transcript, you could show a confirmation dialog here
       if (_currentTranscript.isNotEmpty) {
-        _logger.i('Transcript received: $_currentTranscript');
+        logger.i('Transcript received: $_currentTranscript');
         _showTranscriptConfirmation(_currentTranscript);
       }
     }
@@ -384,8 +385,8 @@ class _ChatScreenState extends State<ChatScreen> {
         setState(() {});
       },
     );
-    _logger.i(aiMessage.toString());
-    _logger.i(jsonEncode(userMessage.toJson()));
+    logger.i(aiMessage.toString());
+    logger.i(jsonEncode(userMessage.toJson()));
     _messages.add(aiMessage.aiMessage);
     // _messages.add(ChatMessage(text: 'Total tokens: ' + aiMessage.totalTokens.toString(), isUserMessage: false));
     setState(() {});
@@ -524,7 +525,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       if (newProficiencyLevel != null) {
                         setState(() {
                           _changeProficiencyLevel(newProficiencyLevel);
-                          _logger.i('Proficiency level changed to: ${newProficiencyLevel.displayName}');
+                          logger.i('Proficiency level changed to: ${newProficiencyLevel.displayName}');
                         });
                       }
                     }, 
@@ -548,7 +549,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         (_isListening ? 1 : 0),
 
               itemBuilder: (context, index) {
-                _logger.i('ListView building item $index');
+                logger.i('ListView building item $index');
                 
                 // Loading indicator
                 if (_isLoading && index == _messages.length + (_showConversationStarters ? 1 : 0) + (_isLoading ? 1 : 0)) {

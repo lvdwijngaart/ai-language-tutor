@@ -18,6 +18,9 @@ class Collection {
   final DateTime? updatedAt;
   final String createdBy;
 
+  // Optional field for profile, so creator user's info can be stored
+  final Map<String, dynamic>? profile;
+
   Collection({
     this.id,
     required this.title,
@@ -30,6 +33,7 @@ class Collection {
     required this.createdAt,
     this.updatedAt,
     required this.createdBy,
+    this.profile
   });
 
   factory Collection.fromMap(Map<String, dynamic> json) {
@@ -44,6 +48,8 @@ class Collection {
         updatedAt = getDateTimeFromMapItem(json['updated_at']);
       }
 
+      final profile = json['profiles'] is Map<String, dynamic> ? json['profiles'] : null;
+
       return Collection(
         id: id,
         title: json['title'],
@@ -56,6 +62,7 @@ class Collection {
         createdAt: getDateTimeFromMapItem(json['created_at']),
         updatedAt: updatedAt,
         createdBy: json['created_by'],
+        profile: profile,
       );
     } catch (e) {
       throw FormatException(

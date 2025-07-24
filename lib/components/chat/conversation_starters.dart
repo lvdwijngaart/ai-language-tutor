@@ -19,7 +19,7 @@ class ConversationStarters extends StatelessWidget{
     List<String> conversationStarters = ['Introduce myself', 'Order food at a restaurant'];
 
     return Container(
-      margin: EdgeInsets.only(top: 15, left: 45),
+      margin: EdgeInsets.only(top: 15, left: 45, bottom: 15),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -31,7 +31,7 @@ class ConversationStarters extends StatelessWidget{
               fontWeight: FontWeight.bold
             ),
           ), 
-          SizedBox(height: 8,), 
+          SizedBox(height: 8), 
           Wrap(
             spacing: 8,
             runSpacing: 8,

@@ -1,6 +1,6 @@
 
 
-import 'package:ai_lang_tutor_v2/screens/collections/add_collection_screen.dart';
+import 'package:ai_lang_tutor_v2/screens/collections/collection_form_screen.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
@@ -14,7 +14,7 @@ class AppTransitions {
   }) {
     return CustomTransitionPage(
       key: key,
-      child: AddCollectionScreen(),
+      child: child,
       transitionDuration: Duration(milliseconds: 500),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         const begin = Offset(0, 1);

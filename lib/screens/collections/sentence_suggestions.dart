@@ -4,6 +4,7 @@ import 'package:ai_lang_tutor_v2/models/database/sentence.dart';
 import 'package:ai_lang_tutor_v2/models/enums/app_enums.dart';
 import 'package:ai_lang_tutor_v2/services/supabase/collections/sentences/collection_sentences_service.dart';
 import 'package:ai_lang_tutor_v2/services/supabase/collections/sentences/sentences_service.dart';
+import 'package:ai_lang_tutor_v2/utils/logger.dart';
 import 'package:flutter/material.dart';
 
 class SentenceSuggestions extends StatefulWidget {
@@ -48,7 +49,6 @@ class _SentenceSuggestionState extends State<SentenceSuggestions> {
     // 'Nor dirigimos hacia la estación de tren más cercana', 
     // 'Reconozco que me equivoqué en mi decisión. '
   ];
-  Set<Sentence> _selectedSentences = {};
   bool _isLoadingSuggestions = false;
   bool _isSaving = false;
 
@@ -63,7 +63,9 @@ class _SentenceSuggestionState extends State<SentenceSuggestions> {
 
     // Get suggestions
     try {
-      // final suggestions = ['Sentence 1', 'Sentence 2', 'Sentence 3'];
+
+      // TODO: Get sentence suggestions somewhere
+      // final suggestions = ...
 
       setState(() {
         // _suggestedSentences = suggestions;
@@ -72,22 +74,20 @@ class _SentenceSuggestionState extends State<SentenceSuggestions> {
     } catch (e) {
       setState(() {
         _isLoadingSuggestions = false;
-        print("Error occurred during suggestion request"); // TODO: Better error handling
       });
+      
     }
   }
 
   void _addSentence(Sentence sentence) {
     setState(() {
       _sentences.add(sentence);
-      // _suggestedSentences.remove(sentence);
     });
   }
 
   void _removeSentence(Sentence sentence) {
     setState(() {
       _sentences.remove(sentence);
-      // _suggestedSentences.add(sentence);
     });
   }
 
@@ -112,8 +112,12 @@ class _SentenceSuggestionState extends State<SentenceSuggestions> {
 
         final bool addToCollectionResult = await CollectionSentencesService.addMultSentencesToCollection(sentenceIds: sentenceIds, collectionId: collectionId);
       } catch (e) {
-        // TODO: Handle exception during insertion
-        print('Something went wrong during adding sentences to Collection: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Something went wrong while adding sentences to your collection. ')
+          )
+        );
+        logger.e('Something went wrong during adding sentences to Collection: $e');
         return;
       }
 
@@ -177,6 +181,7 @@ class _SentenceSuggestionState extends State<SentenceSuggestions> {
         shadowColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
+        automaticallyImplyLeading: false, // This disables the back button
       ),
       body: Column(
         children: [
@@ -521,3 +526,48 @@ class _SentenceSuggestionState extends State<SentenceSuggestions> {
     return result ?? false;
   }
 }
+
+final prompt = """ 
+    You are a language tutor for Spanish. Here are some example sentences from a user's vocabulary collection, 
+    where each sentence includes a cloze word (marked by {}):  
+    1. {Imaginemos} que estamos en un restaurante. 
+    2. Qué tipo de aplicaciones sueles programar? 
+    3. Se atrevió a contradecir al profesor durante la clase. 
+    Based on the style and difficulty of these sentences, 
+    generate 5 new sentences with cloze deletions to help the user practice similar vocabulary. """;
+
+//     Generate 5 new Spanish practice sentences with a single cloze deletion in each (use curly braces {} to mark the cloze word). The sentences should closely match the style, complexity, tone, and vocabulary level of the given examples (natural sentences, moderate fluency, focus on verbs and useful expressions). After generating each Spanish sentence, provide its accurate English translation.
+
+// For each sentence, return the following fields:
+// - sentence: the full Spanish sentence, with exactly one word inside {} for cloze deletion
+// - translation: the full English translation, with the cloze word translated in context
+// - startClozeChar: zero-based index of the first character of the cloze word in the sentence (counting from beginning, including special or accented characters)
+// - endClozeChar: zero-based index for the last character of the cloze word in the sentence (inclusive)
+
+// Work step-by-step to make sure sentences meet the vocabulary and difficulty style, the cloze is useful, and the translations are faithful to the context before creating the final output.
+
+// Output your response as a JSON array of exactly 5 objects, each with the fields specified above. Do not include any extra commentary or formatting.
+
+// Example:
+// [
+//   {
+//     "sentence": "{Comenzaré} a estudiar después de cenar.",
+//     "translation": "I will start studying after dinner.",
+//     "startClozeChar": 0,
+//     "endClozeChar": 9
+//   },
+//   {
+//     "sentence": "¿{Sabes} dónde dejé las llaves?",
+//     "translation": "Do you know where I left the keys?",
+//     "startClozeChar": 1,
+//     "endClozeChar": 6
+//   }
+//   // (3 more objects in same format)
+// ]
+
+// (Remember: Provide only the JSON array in your answer with 5 items. Sentences must be original but comparable in level and vocabulary to the examples. All cloze deletions should be useful for vocabulary practice. Calculate indices carefully, including special characters.)
+
+// Important: 
+// - Only output a JSON array of 5 objects, nothing else.
+// - Precisely calculate startClozeChar and endClozeChar, accounting for special characters.
+// - Each sentence must have exactly one cloze deletion, matching the style/difficulty of the provided examples.

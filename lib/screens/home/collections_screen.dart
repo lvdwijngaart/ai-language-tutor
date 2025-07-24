@@ -10,7 +10,7 @@ import 'package:provider/provider.dart';
 
 class CollectionsScreen extends StatelessWidget {
   final double headerSize = 22;
-  
+
   const CollectionsScreen({super.key});
 
   @override
@@ -27,10 +27,7 @@ class CollectionsScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     const SizedBox(height: 10),
-                    Text(
-                      'Collections',
-                      style: AppTextStyles.pageHeader
-                    ),
+                    Text('Collections', style: AppTextStyles.pageHeader),
                   ],
                 ),
               ),
@@ -41,32 +38,37 @@ class CollectionsScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
                       // Challenge button
                       _buildChallengeButton(),
                       const SizedBox(height: 30),
 
                       // List of user's Collections
-                      _buildUserCollectionsList(context: context, collectionsProvider: collectionsProvider),
+                      _buildUserCollectionsList(
+                        context: context,
+                        collectionsProvider: collectionsProvider,
+                      ),
                       const SizedBox(height: 30),
 
                       // List of public Collections
-                      _buildPublicCollectionsList(context: context, collectionsProvider: collectionsProvider),
+                      _buildPublicCollectionsList(
+                        context: context,
+                        collectionsProvider: collectionsProvider,
+                      ),
                       const SizedBox(height: 20),
                     ],
                   ),
                 ),
-              )
-            ]
-          )
-        );            
-      }
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
   Widget _buildUserCollectionsList({
     required BuildContext context,
-    required CollectionsProvider collectionsProvider
+    required CollectionsProvider collectionsProvider,
   }) {
     final personalCollections = collectionsProvider.personalCollections;
 
@@ -83,80 +85,90 @@ class CollectionsScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        
+
         if (collectionsProvider.isLoadingPersonal) ...[
           Center(
             child: Column(
               children: [
-                CircularProgressIndicator(color: Colors.white), 
-                const SizedBox(height: 8), 
+                CircularProgressIndicator(color: Colors.white),
+                const SizedBox(height: 8),
                 Text(
-                  'Loading your collections...', 
-                  style: TextStyle(
-                    color: Colors.white70, 
-                    fontSize: 14
-                  ),
-                )
+                  'Loading your collections...',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
               ],
             ),
-          )
-        ]
-
-        else if (collectionsProvider.personalError != null) ...[
+          ),
+        ] else if (collectionsProvider.personalError != null) ...[
           Center(
             child: Column(
               children: [
                 Icon(
-                  Icons.error_outline, 
-                  color: AppColors.errorColor, 
-                  size: 48
-                ), 
-                const SizedBox(height: 8), 
+                  Icons.error_outline,
+                  color: AppColors.errorColor,
+                  size: 48,
+                ),
+                const SizedBox(height: 8),
                 Text(
-                  'Error loading collections', 
+                  'Error loading collections',
                   style: TextStyle(
-                    color: AppColors.errorColor, 
-                    fontSize: 16, 
-                    fontWeight: FontWeight.bold
+                    color: AppColors.errorColor,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
-                ), 
-                const SizedBox(height: 4), 
+                ),
+                const SizedBox(height: 4),
                 Text(
-                  collectionsProvider.personalError!, 
-                  style: TextStyle(
-                    color: Colors.white70, 
-                    fontSize: 12, 
-                  ),
+                  collectionsProvider.personalError!,
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                ), 
-                const SizedBox(height: 12), 
+                ),
+                const SizedBox(height: 12),
                 ElevatedButton(
                   onPressed: () {
-                    final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
-                    collectionsProvider.refresh(languageProvider.selectedLanguage);
-                  }, 
+                    final languageProvider = Provider.of<LanguageProvider>(
+                      context,
+                      listen: false,
+                    );
+                    collectionsProvider.refresh(
+                      languageProvider.selectedLanguage,
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.secondaryAccent, 
-                    foregroundColor: Colors.white
+                    backgroundColor: AppColors.secondaryAccent,
+                    foregroundColor: Colors.white,
                   ),
-                  child: Text('Retry')
-                )
-              ]
-            )
-          )
-        ]
-
-        else ...[
+                  child: Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ] else ...[
           // If collection has any records, show these in Grid layout
           if (personalCollections.isNotEmpty) ...[
-            ...personalCollections.map((collection) => _buildcollectionButton(
-            icon: collection.icon ?? Icons.star, 
-            title: collection.title, 
-            nrOfSentences: collection.nrOfSentences, 
-            onTap: () => context.push('/collections/${collection.id}/view')
-          ))
+            ...personalCollections.map(
+              (collection) => _buildcollectionButton(
+                icon: collection.icon ?? Icons.star,
+                title: collection.title,
+                nrOfSentences: collection.nrOfSentences,
+                onTap: () async {
+                  final result = await context.push(
+                    '/collections/${collection.id}/view',
+                  );
+                  if (result == 'deleted') {
+                    final languageProvider = Provider.of<LanguageProvider>(
+                      context,
+                      listen: false,
+                    );
+                    collectionsProvider.refresh(
+                      languageProvider.selectedLanguage,
+                    );
+                  }
+                },
+              ),
+            ),
           ],
           if (personalCollections.isEmpty) ...[
             Center(
@@ -174,10 +186,13 @@ class CollectionsScreen extends StatelessWidget {
               final result = await context.push('/collections/create');
 
               if (result == 'created') {
-                final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
+                final languageProvider = Provider.of<LanguageProvider>(
+                  context,
+                  listen: false,
+                );
                 collectionsProvider.refresh(languageProvider.selectedLanguage);
               }
-            }, 
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
@@ -201,14 +216,14 @@ class CollectionsScreen extends StatelessWidget {
               ),
             ),
           ),
-        ]
+        ],
       ],
     );
   }
 
   Widget _buildPublicCollectionsList({
-    required BuildContext context, 
-    required CollectionsProvider collectionsProvider
+    required BuildContext context,
+    required CollectionsProvider collectionsProvider,
   }) {
     final maxRows = 2;
     final columns = 2;
@@ -230,86 +245,92 @@ class CollectionsScreen extends StatelessWidget {
         ),
         const SizedBox(height: 8),
 
-
         if (collectionsProvider.isLoadingPublic) ...[
           Center(
             child: Column(
               children: [
-                CircularProgressIndicator(color: Colors.white), 
-                const SizedBox(height: 8), 
+                CircularProgressIndicator(color: Colors.white),
+                const SizedBox(height: 8),
                 Text(
-                  'Loading public collections...', 
-                  style: TextStyle(
-                    color: Colors.white70, 
-                    fontSize: 14
-                  ),
-                )
+                  'Loading public collections...',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
               ],
             ),
-          )
-        ]
-
-        else if (collectionsProvider.publicError != null) ...[
+          ),
+        ] else if (collectionsProvider.publicError != null) ...[
           Center(
             child: Column(
               children: [
                 Icon(
-                  Icons.error_outline, 
-                  color: AppColors.errorColor, 
-                  size: 48
-                ), 
-                const SizedBox(height: 8), 
+                  Icons.error_outline,
+                  color: AppColors.errorColor,
+                  size: 48,
+                ),
+                const SizedBox(height: 8),
                 Text(
-                  'Error loading collections', 
+                  'Error loading collections',
                   style: TextStyle(
-                    color: AppColors.errorColor, 
-                    fontSize: 16, 
-                    fontWeight: FontWeight.bold
+                    color: AppColors.errorColor,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
-                ), 
-                const SizedBox(height: 4), 
+                ),
+                const SizedBox(height: 4),
                 Text(
-                  collectionsProvider.publicError!, 
-                  style: TextStyle(
-                    color: Colors.white70, 
-                    fontSize: 12, 
-                  ),
+                  collectionsProvider.publicError!,
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                ), 
-                const SizedBox(height: 12), 
+                ),
+                const SizedBox(height: 12),
                 ElevatedButton(
                   onPressed: () {
-                    final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
-                    collectionsProvider.refresh(languageProvider.selectedLanguage);
-                  }, 
+                    final languageProvider = Provider.of<LanguageProvider>(
+                      context,
+                      listen: false,
+                    );
+                    collectionsProvider.refresh(
+                      languageProvider.selectedLanguage,
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.secondaryAccent, 
-                    foregroundColor: Colors.white
+                    backgroundColor: AppColors.secondaryAccent,
+                    foregroundColor: Colors.white,
                   ),
-                  child: Text('Retry')
-                )
-              ]
-            )
-          )
-        ]
-
-        else ...[
-          ...publicCollections.map((collection) => _buildcollectionButton(
-            icon: collection.icon ?? Icons.star, 
-            title: collection.title, 
-            nrOfSentences: collection.nrOfSentences, 
-            onTap: () => context.push('/collections/${collection.id}/view')      // TODO
-          ))
+                  child: Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ] else ...[
+          if (publicCollections.isNotEmpty) ...[
+            ...publicCollections.map(
+              (collection) => _buildcollectionButton(
+                icon: collection.icon ?? Icons.star,
+                title: collection.title,
+                nrOfSentences: collection.nrOfSentences,
+                onTap: () => context.push('/collections/${collection.id}/view'),
+              ),
+            ),
+          ],
+          if (publicCollections.isEmpty) ...[
+            Center(
+              child: Text(
+                'No Public Collections saved yet. Find and save a collection to start learning new vocab!',
+                style: AppTextStyles.heading3,
+              ),
+            ),
+          ],
         ],
         const SizedBox(height: 5),
 
         // Find Public Collection button
         GestureDetector(
-            onTap: () {
+          onTap: () {
             context.push('/collections/public-collections');
-            },
+          },
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(

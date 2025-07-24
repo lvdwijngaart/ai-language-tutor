@@ -24,7 +24,6 @@ class BottomNavigation extends StatefulWidget {
 class _BottomNavigationState extends State<BottomNavigation> {
   late int _selectedIndex;
   late PageController _pageController;
-  final Logger _logger = Logger();
 
   bool _collectionsInitialized = false;
 
@@ -63,7 +62,7 @@ class _BottomNavigationState extends State<BottomNavigation> {
           });
         }
 
-        final List<Widget> _screens = [
+        final List<Widget> screens = [
           HomeScreen(),
           CollectionsScreen(),
           PracticeScreen(),
@@ -74,7 +73,6 @@ class _BottomNavigationState extends State<BottomNavigation> {
           backgroundColor: AppColors.darkBackground,
           body: PageView(
             controller: _pageController,
-            children: _screens,
             onPageChanged: (index) {
               setState(() {
                 _selectedIndex = index;
@@ -82,6 +80,7 @@ class _BottomNavigationState extends State<BottomNavigation> {
             },
             physics:
                 const NeverScrollableScrollPhysics(), // Prevent swipe if you want only nav bar control
+            children: screens,
           ),
           bottomNavigationBar: Container(
             decoration: BoxDecoration(

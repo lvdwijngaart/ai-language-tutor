@@ -1,16 +1,13 @@
-
-
 import 'package:ai_lang_tutor_v2/models/database/collection.dart';
 import 'package:ai_lang_tutor_v2/models/database/sentence.dart';
 import 'package:ai_lang_tutor_v2/models/enums/app_enums.dart';
 import 'package:ai_lang_tutor_v2/services/supabase/collections/collections_service.dart';
 import 'package:ai_lang_tutor_v2/services/supabase/collections/sentences/sentences_service.dart';
 import 'package:ai_lang_tutor_v2/services/supabase_client.dart';
+import 'package:ai_lang_tutor_v2/utils/logger.dart';
 import 'package:flutter/material.dart';
-import 'package:logger/web.dart';
 
 class CollectionsProvider extends ChangeNotifier {
-  final Logger _logger = Logger();
 
   List<Collection> _personalCollections = [];
   List<Collection> _publicCollections = [];
@@ -37,7 +34,7 @@ class CollectionsProvider extends ChangeNotifier {
 
   Future<void> loadCollections(Language language) async {
 
-    _logger.i('Loading collections for ${language.displayName}');
+    logger.i('Loading collections for ${language.displayName}');
 
     // Set loading states
     _isLoadingPersonal = true;
@@ -54,29 +51,28 @@ class CollectionsProvider extends ChangeNotifier {
 
       _personalCollections = personalCollections;
       _personalError = null;
-      _logger.i('Personal collections loaded: ${personalCollections.length} items');
+      logger.i('Personal collections loaded: ${personalCollections.length} items');
     } catch (e) {
       _personalError = e.toString();
       _personalCollections = [];
-      _logger.e('Error loading personal collections: $e');
+      logger.e('Error loading personal collections: $e');
     } finally {
       _isLoadingPersonal = false;
     }
 
     try {
-      final publicCollections = await CollectionsService.getHighlightCollections(
-        nrOfResults: 4, 
+      final publicCollections = await CollectionsService.getPublicCollections(
         userId: supabase.auth.currentUser!.id, 
         language: language
       );
 
       _publicCollections = publicCollections;
       _publicError = null;
-      _logger.i('Public collections loaded: ${publicCollections.length} items');
+      logger.i('Public collections loaded: ${publicCollections.length} items');
     } catch (e) {
       _publicError = e.toString();
       _publicCollections = [];
-      _logger.e('Error loading public collections: $e');
+      logger.e('Error loading public collections: $e');
     } finally {
       _isLoadingPublic = false;
     }
@@ -93,8 +89,14 @@ class CollectionsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void addPublicCollection(Collection collection) {
+    _publicCollections.add(collection);
+    notifyListeners();
+  }
+
   void removeCollection(String collectionId) {
-    personalCollections.removeWhere((collection) => collection.id == collectionId);
+    _personalCollections.removeWhere((collection) => collection.id == collectionId);
+    _publicCollections.removeWhere((collection) => collection.id == collectionId);
     notifyListeners();
   }
 
@@ -104,6 +106,19 @@ class CollectionsProvider extends ChangeNotifier {
       _personalCollections[index] = updatedCollection;
       notifyListeners();
     }
+  }
+
+  // Helper method to check if a collection is saved by the user
+  bool isCollectionSaved(String collectionId) {
+    return _personalCollections.any((c) => c.id == collectionId) ||
+           _publicCollections.any((c) => c.id == collectionId);
+  }
+
+  // Helper method to get user's saved collection IDs for filtering
+  List<String> get savedCollectionIds {
+    final personalIds = _personalCollections.map((c) => c.id!).toList();
+    final publicIds = _publicCollections.map((c) => c.id!).toList();
+    return [...personalIds, ...publicIds];
   }
 
   void clear() {
@@ -132,7 +147,7 @@ class CollectionsProvider extends ChangeNotifier {
   String _searchTerm = '';
   int _selectedCategory = 0;
   int _currentPage = 0;
-  int _pageSize = 20;
+  final int _pageSize = 20;
   bool _hasMoreResults = true;
   bool _isLoadingMore = false;
   bool _isSearching = false;
@@ -151,13 +166,17 @@ class CollectionsProvider extends ChangeNotifier {
   bool get isLoadingMore => _isLoadingMore;
   bool get isSearching => _isSearching;
 
-  // ✅ Getters for single collection state
+  // Getters for single collection state
   Collection? get selectedCollection => _selectedCollection;
+  set selectedCollection(Collection? collection) {
+    _selectedCollection = collection;
+    notifyListeners();
+  }
   List<Sentence> get collectionSentences => _collectionSentences;
   bool get isLoadingCollection => _isLoadingCollection;
   String? get collectionError => _collectionError;
 
-  // ✅ Search public collections with pagination
+  // Search public collections with pagination
   Future<void> searchPublicCollections({
     required String searchTerm,
     required int categoryIndex,
@@ -188,6 +207,7 @@ class CollectionsProvider extends ChangeNotifier {
         categoryFilter: _getCategoryFilter(categoryIndex),
         language: language,
         userId: supabase.auth.currentUser!.id,
+        savedCollectionIds: savedCollectionIds,
         page: _currentPage,
         pageSize: _pageSize,
       );
@@ -205,12 +225,12 @@ class CollectionsProvider extends ChangeNotifier {
       _selectedCategory = categoryIndex;
       _publicError = null;
       
-      _logger.i('Search completed: ${results.length} results, page: $_currentPage');
+      logger.i('Search completed: ${results.length} results, page: $_currentPage');
 
     } catch (e) {
       _publicError = e.toString();
       if (!loadMore) _searchResults = [];
-      _logger.e('Error searching public collections: $e');
+      logger.e('Error searching public collections: $e');
     } finally {
       _isSearching = false;
       _isLoadingMore = false;
@@ -218,7 +238,7 @@ class CollectionsProvider extends ChangeNotifier {
     }
   }
 
-  // ✅ Load more search results
+  // Load more search results
   Future<void> loadMoreSearchResults({
     required String searchTerm,
     required int categoryIndex,
@@ -234,7 +254,7 @@ class CollectionsProvider extends ChangeNotifier {
     );
   }
 
-  // ✅ Load single collection details
+  // Load single collection details
   Future<void> loadSingleCollection(String collectionId) async {
     _isLoadingCollection = true;
     _collectionError = null;
@@ -254,20 +274,25 @@ class CollectionsProvider extends ChangeNotifier {
       _collectionSentences = sentences;
 
       _collectionError = null;
-      _logger.i('Single collection loaded: ${collection.title} with ${sentences.length} sentences');
+      logger.i('Single collection loaded: ${collection.title} with ${sentences.length} sentences');
 
     } catch (e) {
       _collectionError = e.toString();
       _selectedCollection = null;
       _collectionSentences = [];
-      _logger.e('Error loading single collection: $e');
+      logger.e('Error loading single collection: $e');
     } finally {
       _isLoadingCollection = false;
       notifyListeners();
     }
   }
 
-  // ✅ Helper to convert category index to filter
+  void removeSentenceFromCollection(String sentenceId) {
+    _collectionSentences.removeWhere((sentence) => sentence.id == sentenceId);
+    notifyListeners();
+  }
+
+  // Helper to convert category index to filter
   String _getCategoryFilter(int categoryIndex) {
     switch (categoryIndex) {
       case 0: return 'all';
@@ -278,7 +303,7 @@ class CollectionsProvider extends ChangeNotifier {
     }
   }
 
-  // ✅ Clear search results
+  // Clear search results
   void clearSearch() {
     _searchResults.clear();
     _searchTerm = '';
@@ -290,12 +315,16 @@ class CollectionsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ✅ Clear single collection data
+  // Clear single collection data
   void clearSingleCollection() {
     _selectedCollection = null;
     _collectionSentences = [];
     _collectionError = null;
     _isLoadingCollection = false;
     notifyListeners();
+  }
+
+  void removeFromSearch(String collectionId) {
+    
   }
 }

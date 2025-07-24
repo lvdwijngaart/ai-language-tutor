@@ -1,22 +1,24 @@
 enum Language {
-  spanish('Spanish', '🇪🇸', 'es-ES', '¡Hola!'),
-  french('French', '🇫🇷', 'fr-FR', 'Bonjour!'),
-  german('German', '🇩🇪', 'de-DE', 'Hallo!'),
-  italian('Italian', '🇮🇹', 'it-IT', 'Ciao!'),
-  portuguese('Portuguese', '🇵🇹', 'pt-PT', 'Olá!'),
-  dutch('Dutch', '🇳🇱', 'nl-NL', 'Hallo!'),
-  chinesePinyin('Chinese (Pinyin)', '🇨🇳', 'zh-CN', '你好!');
+  spanish('Spanish', '🇪🇸', 'es-ES', '¡Hola!', 'spanish'),
+  french('French', '🇫🇷', 'fr-FR', 'Bonjour!', 'french'),
+  german('German', '🇩🇪', 'de-DE', 'Hallo!', 'german'),
+  italian('Italian', '🇮🇹', 'it-IT', 'Ciao!', 'italian'),
+  portuguese('Portuguese', '🇵🇹', 'pt-PT', 'Olá!', 'portuguese'),
+  dutch('Dutch', '🇳🇱', 'nl-NL', 'Hallo!', 'dutch'),
+  chinesePinyin('Chinese (Pinyin)', '🇨🇳', 'zh-CN', '你好!', null);
 
   const Language(
     this.displayName,
     this.flagEmoji,
     this.localeCode,
     this.greeting,
+    this.dbConfig
   );
   final String displayName;
   final String flagEmoji;
   final String localeCode;
   final String greeting;
+  final String? dbConfig;
 
   // Get fallback locales for speech recognition
   List<String> get fallbackLocales {

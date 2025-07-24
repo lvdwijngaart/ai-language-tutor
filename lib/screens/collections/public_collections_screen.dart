@@ -1,4 +1,3 @@
-
 import 'package:ai_lang_tutor_v2/constants/app_constants.dart';
 import 'package:ai_lang_tutor_v2/constants/icon_constants.dart';
 import 'package:ai_lang_tutor_v2/models/database/collection.dart';
@@ -21,7 +20,12 @@ class _PublicCollectionScreenState extends State<PublicCollectionsScreen> {
   String _searchTerm = '';
   int _selectedCategory = 0;
 
-  final List<String> _categories = ['All', 'Popular', 'Recent', 'Featured'];    // TODO: Generalize also with the provider (& the query it calls)
+  final List<String> _categories = [
+    'All',
+    'Popular',
+    'Recent',
+    'Featured',
+  ]; // TODO: Generalize also with the provider (& the query it calls)
 
   @override
   void initState() {
@@ -29,7 +33,7 @@ class _PublicCollectionScreenState extends State<PublicCollectionsScreen> {
     _searchController = TextEditingController();
     _scrollController = ScrollController();
     _scrollController.addListener(_onScroll);
-    
+
     // Load initial data
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _performSearch();
@@ -44,15 +48,22 @@ class _PublicCollectionScreenState extends State<PublicCollectionsScreen> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent * 0.8) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent * 0.8) {
       _loadMore();
     }
   }
 
   Future<void> _performSearch() async {
-    final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
-    final collectionsProvider = Provider.of<CollectionsProvider>(context, listen: false);
-    
+    final languageProvider = Provider.of<LanguageProvider>(
+      context,
+      listen: false,
+    );
+    final collectionsProvider = Provider.of<CollectionsProvider>(
+      context,
+      listen: false,
+    );
+
     await collectionsProvider.searchPublicCollections(
       searchTerm: _searchTerm,
       categoryIndex: _selectedCategory,
@@ -61,9 +72,15 @@ class _PublicCollectionScreenState extends State<PublicCollectionsScreen> {
   }
 
   Future<void> _loadMore() async {
-    final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
-    final collectionsProvider = Provider.of<CollectionsProvider>(context, listen: false);
-    
+    final languageProvider = Provider.of<LanguageProvider>(
+      context,
+      listen: false,
+    );
+    final collectionsProvider = Provider.of<CollectionsProvider>(
+      context,
+      listen: false,
+    );
+
     await collectionsProvider.loadMoreSearchResults(
       searchTerm: _searchTerm,
       categoryIndex: _selectedCategory,
@@ -74,17 +91,20 @@ class _PublicCollectionScreenState extends State<PublicCollectionsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Public Collections"),
-        elevation: 0,
-      ),
-      body: Column(
-        children: [
-          _buildSearchBar(),
-          _buildCategoryTabs(),
-          Expanded(child: _buildSearchResults()),
-        ],
-      ),
+      appBar: AppBar(title: Text("Public Collections"), elevation: 0),
+      body: GestureDetector(
+        onTap: () {
+          // Dismiss keyboard and unfocus the search bar
+          FocusScope.of(context).unfocus();
+        },
+        child: Column(
+          children: [
+            _buildSearchBar(),
+            _buildCategoryTabs(),
+            Expanded(child: _buildSearchResults()),
+          ],
+        ),
+      )
     );
   }
 
@@ -131,28 +151,29 @@ class _PublicCollectionScreenState extends State<PublicCollectionsScreen> {
         itemBuilder: (context, index) {
           final isSelected = _selectedCategory == index;
           return Padding(
-        padding: EdgeInsets.only(right: 8),
-        child: FilterChip(
-          label: Text(_categories[index]),
-          selected: isSelected,
-          onSelected: (selected) {
-            setState(() => _selectedCategory = index);
-            _performSearch();
-          },
-          backgroundColor: Colors.transparent,
-          selectedColor: AppColors.secondaryAccent.withOpacity(0.9),
-          checkmarkColor: AppColors.darkBackground,
-          side: BorderSide(
-            color: isSelected
-            ? AppColors.secondaryAccent // Selected border color
-            : Colors.grey, // Unselected border color
-            width: 1,
-          ),
-        ),
+            padding: EdgeInsets.only(right: 8),
+            child: FilterChip(
+              label: Text(_categories[index]),
+              selected: isSelected,
+              onSelected: (selected) {
+                setState(() => _selectedCategory = index);
+                _performSearch();
+              },
+              backgroundColor: Colors.transparent,
+              selectedColor: AppColors.secondaryAccent.withOpacity(0.9),
+              checkmarkColor: AppColors.darkBackground,
+              side: BorderSide(
+                color: isSelected
+                    ? AppColors
+                          .secondaryAccent // Selected border color
+                    : Colors.grey, // Unselected border color
+                width: 1,
+              ),
+            ),
           );
         },
       ),
-        );
+    );
   }
 
   Widget _buildSearchResults() {
@@ -172,7 +193,8 @@ class _PublicCollectionScreenState extends State<PublicCollectionsScreen> {
 
         return ListView.builder(
           controller: _scrollController,
-          itemCount: provider.searchResults.length + (provider.isLoadingMore ? 1 : 0),
+          itemCount:
+              provider.searchResults.length + (provider.isLoadingMore ? 1 : 0),
           itemBuilder: (context, index) {
             if (index == provider.searchResults.length) {
               return _buildLoadingMoreIndicator();
@@ -204,14 +226,14 @@ class _PublicCollectionScreenState extends State<PublicCollectionsScreen> {
         children: [
           Icon(Icons.error_outline, size: 64, color: Colors.grey),
           SizedBox(height: 16),
-          Text("Error loading collections", style: Theme.of(context).textTheme.headlineSmall),
+          Text(
+            "Error loading collections",
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
           SizedBox(height: 8),
           Text(error, textAlign: TextAlign.center),
           SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _performSearch,
-            child: Text("Retry"),
-          ),
+          ElevatedButton(onPressed: _performSearch, child: Text("Retry")),
         ],
       ),
     );
@@ -224,7 +246,10 @@ class _PublicCollectionScreenState extends State<PublicCollectionsScreen> {
         children: [
           Icon(Icons.search_off, size: 64, color: Colors.grey),
           SizedBox(height: 16),
-          Text("No collections found", style: Theme.of(context).textTheme.headlineSmall),
+          Text(
+            "No collections found",
+            style: Theme.of(context).textTheme.headlineSmall,
+          ),
           SizedBox(height: 8),
           Text("Try adjusting your search or category filter"),
         ],
@@ -241,52 +266,94 @@ class _PublicCollectionScreenState extends State<PublicCollectionsScreen> {
   }
 
   Widget _buildCollectionListItem(Collection collection) {
+    // Check if this collection has already been added by the user
+    final collectionsProvider = Provider.of<CollectionsProvider>(context, listen: false);
+    bool isAdded = false;
+    if (collectionsProvider.publicCollections.any((c) => c.id == collection.id)) {
+      isAdded = true;
+    }
+
     return Card(
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 3,
+      shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(16),
+      side: BorderSide(
+        color: isAdded ? AppColors.secondaryAccent.withOpacity(0.7) : Colors.transparent,
+        width: isAdded ? 1 : 0,
+      ),
+      ),
+      color: isAdded
+        ? AppColors.secondaryAccent.withOpacity(0.10)
+        : Theme.of(context).cardColor,
       child: ListTile(
-        contentPadding: EdgeInsets.all(16),
-        title: Text(
-          collection.title,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.bold,
+      contentPadding: EdgeInsets.all(16),
+      title: Wrap(
+        children: [
+          Text(
+            collection.title,
+            style: Theme.of(context)
+              .textTheme
+              .titleMedium
+              ?.copyWith(fontWeight: FontWeight.bold),
+          ), 
+          if (isAdded) ...[
+            Text(
+              ' - Saved', 
+              style: Theme.of(context)
+              .textTheme
+              .titleMedium
+              ?.copyWith(color: AppColors.secondaryAccent, fontWeight: FontWeight.bold)
+            )
+          ]
+        ]
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+        if (collection.description?.isNotEmpty == true) ...[
+          SizedBox(height: 8),
+          Text(
+          collection.description!,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodyMedium,
           ),
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+        SizedBox(height: 8),
+        Row(
           children: [
-            if (collection.description?.isNotEmpty == true) ...[
-              SizedBox(height: 8),
-              Text(
-                collection.description!,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-            SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(Icons.quiz, size: 16, color: AppColors.electricBlue.withOpacity(0.8)),
-                SizedBox(width: 4),
-                Text('${collection.nrOfSentences} sentences'),
-                SizedBox(width: 16),
-                Icon(Icons.favorite, size: 16, color: Colors.red.withOpacity(0.8)),
-                SizedBox(width: 4),
-                Text('${collection.saves} saves'),
-              ],
-            ),
+          Icon(
+            Icons.quiz,
+            size: 16,
+            color: AppColors.electricBlue.withOpacity(0.8),
+          ),
+          SizedBox(width: 4),
+          Text('${collection.nrOfSentences} sentences'),
+          SizedBox(width: 16),
+          Icon(
+            Icons.favorite,
+            size: 16,
+            color: Colors.red.withOpacity(0.8),
+          ),
+          SizedBox(width: 4),
+          Text('${collection.saves} saves'),
           ],
         ),
-        leading: IconStyles.smallIconWithPadding(
-          icon: collection.icon!, 
-          backgroundColor: AppColors.secondaryAccent,
-          iconColor: AppColors.secondaryAccent
-        ),
-        trailing: Icon(Icons.arrow_forward_ios, size: 16),
-        onTap: () {
-          if (collection.id != null) {
-            context.push('/collections/${collection.id}/view');
-          }
-        },
+        ],
+      ),
+      leading: IconStyles.smallIconWithPadding(
+        icon: collection.icon!,
+        backgroundColor: AppColors.secondaryAccent,
+        iconColor: AppColors.secondaryAccent,
+      ),
+      trailing: Icon(Icons.arrow_forward_ios, size: 16),
+      onTap: () async {
+        if (collection.id != null) {
+        await context.push('/collections/${collection.id}/view');
+        }
+        _performSearch();
+      },
       ),
     );
   }

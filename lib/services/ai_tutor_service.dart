@@ -5,6 +5,7 @@ import 'package:ai_lang_tutor_v2/models/other/ai_response.dart';
 import 'package:ai_lang_tutor_v2/models/enums/app_enums.dart';
 import 'package:ai_lang_tutor_v2/models/other/chat_message.dart';
 import 'package:ai_lang_tutor_v2/models/other/sentence_analysis.dart';
+import 'package:ai_lang_tutor_v2/utils/logger.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:logger/logger.dart';
@@ -13,8 +14,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class AILanguageTutorService {
   static const String _openaiApiUrl = 'https://api.openai.com/v1/chat/completions';
   static final String _apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
-
-  static final Logger _logger = Logger();
 
   // Cache for on-demand sentence analysis to avoid redundant API calls
   // static final Map<String, Data> _analysisCache = {};
@@ -233,29 +232,29 @@ class AILanguageTutorService {
       final choice = data['choices'][0];
       final message = choice['message'];
       
-      _logger.i('🔍 Response keys: ${message.keys}');
+      logger.i('🔍 Response keys: ${message.keys}');
       
       // Check if response uses tool calls
       if (message['tool_calls'] != null && message['tool_calls'].isNotEmpty) {
-        _logger.i('✓ Using function call - processing normally');
+        logger.i('✓ Using function call - processing normally');
         final toolCall = message['tool_calls'][0];
         final functionCall = toolCall['function'];
         
-        _logger.i('🔍 Function name: ${functionCall['name']}');
+        logger.i('🔍 Function name: ${functionCall['name']}');
         
         try {
           final arguments = jsonDecode(functionCall['arguments']);
           
-          _logger.i('🔍 Arguments keys: ${arguments?.keys?.toList()}');
+          logger.i('🔍 Arguments keys: ${arguments?.keys?.toList()}');
           
           // Parse with flat structure (no nested aiMessage)
           final text = arguments['text']?.toString() ?? 'No AI response text';
           final isUserMessage = arguments['isUserMessage'] ?? false;
           final sentenceAnalysesData = arguments['sentenceAnalyses'];
           
-          _logger.i('🔍 AI text: "$text"');
-          _logger.i('🔍 isUserMessage: $isUserMessage');
-          _logger.i('🔍 sentenceAnalyses exists: ${sentenceAnalysesData != null}');
+          logger.i('🔍 AI text: "$text"');
+          logger.i('🔍 isUserMessage: $isUserMessage');
+          logger.i('🔍 sentenceAnalyses exists: ${sentenceAnalysesData != null}');
           
           // Parse sentence analyses
           List<SentenceAnalysis>? sentenceAnalyses;
@@ -264,9 +263,9 @@ class AILanguageTutorService {
               sentenceAnalyses = (sentenceAnalysesData as List)
                 .map((analysis) => SentenceAnalysis.fromJson(analysis))
                 .toList();
-              _logger.i('🔍 Parsed ${sentenceAnalyses.length} sentence analyses');
+              logger.i('🔍 Parsed ${sentenceAnalyses.length} sentence analyses');
             } catch (e) {
-              _logger.e('❌ Error parsing sentence analyses: $e');
+              logger.e('❌ Error parsing sentence analyses: $e');
             }
           }
         
@@ -284,12 +283,12 @@ class AILanguageTutorService {
             totalTokens: data['usage']?['total_tokens'],
           );
           
-          _logger.i('🔍 Created AI response: "${aiResponse.aiMessage.text}"');
+          logger.i('🔍 Created AI response: "${aiResponse.aiMessage.text}"');
           return aiResponse;
 
         } catch (e, stackTrace) {
-          _logger.e('❌ Error parsing function call: $e');
-          _logger.e('📍 Stack trace: $stackTrace');
+          logger.e('❌ Error parsing function call: $e');
+          logger.e('📍 Stack trace: $stackTrace');
           
           return AIResponse(
             aiMessage: ChatMessage(
@@ -302,8 +301,8 @@ class AILanguageTutorService {
         }
 
       } else {
-        _logger.e('❌ No tool calls found');
-        _logger.i('🔍 Message content: ${message['content']}');
+        logger.e('❌ No tool calls found');
+        logger.i('🔍 Message content: ${message['content']}');
         
         return AIResponse(
           aiMessage: ChatMessage(
@@ -316,8 +315,8 @@ class AILanguageTutorService {
       }
 
     } else {
-      _logger.e('❌ HTTP Error: ${response.statusCode}');
-      _logger.i('🔍 Response body: ${response.body}');
+      logger.e('❌ HTTP Error: ${response.statusCode}');
+      logger.i('🔍 Response body: ${response.body}');
       throw Exception('OpenAI API Error: ${response.statusCode} - ${response.body}');
     }
   }
@@ -335,28 +334,28 @@ class AILanguageTutorService {
       final choice = data['choices'][0];
       final message = choice['message'];
       
-      _logger.i('🔍 Analysis response keys: ${message.keys}');
+      logger.i('🔍 Analysis response keys: ${message.keys}');
       
       if (message['tool_calls'] != null && message['tool_calls'].isNotEmpty) {
-        _logger.i('✓ Using function call for analysis');
+        logger.i('✓ Using function call for analysis');
         final toolCall = message['tool_calls'][0];
         final functionCall = toolCall['function'];
         
-        _logger.i('🔍 Analysis function name: ${functionCall['name']}');
+        logger.i('🔍 Analysis function name: ${functionCall['name']}');
         
         try {
           final arguments = jsonDecode(functionCall['arguments']);
           
-          _logger.i('🔍 Analysis arguments keys: ${arguments?.keys?.toList()}');
+          logger.i('🔍 Analysis arguments keys: ${arguments?.keys?.toList()}');
           
           // Parse with flat structure (no nested userMessageAnalysis)
           final text = arguments['text']?.toString() ?? userMessage.text;
           final isUserMessage = arguments['isUserMessage'] ?? true;
           final sentenceAnalysesData = arguments['sentenceAnalyses'];
           
-          _logger.i('🔍 Analysis text: "$text"');
-          _logger.i('🔍 Analysis isUserMessage: $isUserMessage');
-          _logger.i('🔍 Analysis sentenceAnalyses exists: ${sentenceAnalysesData != null}');
+          logger.i('🔍 Analysis text: "$text"');
+          logger.i('🔍 Analysis isUserMessage: $isUserMessage');
+          logger.i('🔍 Analysis sentenceAnalyses exists: ${sentenceAnalysesData != null}');
           
           // Parse sentence analyses
           List<SentenceAnalysis>? sentenceAnalyses;
@@ -366,9 +365,9 @@ class AILanguageTutorService {
                   .map((analysis) => SentenceAnalysis.fromJson(analysis))
                   .where((analysis) => !checkDuplicateSentence(userMessage, analysis))
                   .toList();
-              _logger.i('🔍 Parsed ${sentenceAnalyses.length} user sentence analyses');
+              logger.i('🔍 Parsed ${sentenceAnalyses.length} user sentence analyses');
             } catch (e) {
-              _logger.e('❌ Error parsing user sentence analyses: $e');
+              logger.e('❌ Error parsing user sentence analyses: $e');
             }
           }
         
@@ -387,12 +386,12 @@ class AILanguageTutorService {
           );
           
           
-          _logger.i('🔍 Created user analysis for: "${aiResponse.aiMessage.text}"');
+          logger.i('🔍 Created user analysis for: "${aiResponse.aiMessage.text}"');
           return aiResponse;
 
         } catch (e, stackTrace) {
-          _logger.e('❌ Error parsing analysis: $e');
-          _logger.e('📍 Stack trace: $stackTrace');
+          logger.e('❌ Error parsing analysis: $e');
+          logger.e('📍 Stack trace: $stackTrace');
           
           return AIResponse(
             aiMessage: ChatMessage(
@@ -408,7 +407,7 @@ class AILanguageTutorService {
         }
 
       } else {
-        _logger.e('❌ No tool calls found for analysis');
+        logger.e('❌ No tool calls found for analysis');
         
         return AIResponse(
             aiMessage: ChatMessage(
@@ -424,7 +423,7 @@ class AILanguageTutorService {
       }
 
     } else {
-      _logger.e('❌ HTTP Error in analysis: ${response.statusCode}');
+      logger.e('❌ HTTP Error in analysis: ${response.statusCode}');
       throw Exception('OpenAI API Error: ${response.statusCode} - ${response.body}');
     }
     

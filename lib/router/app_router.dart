@@ -1,7 +1,8 @@
 import 'package:ai_lang_tutor_v2/constants/app_transitions.dart';
 import 'package:ai_lang_tutor_v2/models/database/collection.dart';
-import 'package:ai_lang_tutor_v2/screens/collections/add_collection_screen.dart';
+import 'package:ai_lang_tutor_v2/screens/collections/collection_form_screen.dart';
 import 'package:ai_lang_tutor_v2/screens/collections/public_collections_screen.dart';
+import 'package:ai_lang_tutor_v2/screens/collections/sentence_screen.dart';
 import 'package:ai_lang_tutor_v2/screens/collections/sentence_suggestions.dart';
 import 'package:ai_lang_tutor_v2/screens/collections/single_collection_screen.dart';
 import 'package:ai_lang_tutor_v2/screens/error_screen.dart';
@@ -119,7 +120,7 @@ class AppRouter {
         path: '/collections/create',
         name: 'create-new-collection',
         pageBuilder: (context, state) { 
-          return AppTransitions.slideUptransition(key: state.pageKey, child: AddCollectionScreen());
+          return AppTransitions.slideUptransition(key: state.pageKey, child: CollectionFormScreen(mode: CollectionFormMode.create));
         }
       ),
       GoRoute(
@@ -140,19 +141,44 @@ class AppRouter {
       GoRoute(
         path: '/collections/:id/view',
         name: 'single-collection-view', 
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final String? collectionId = state.pathParameters['id'];
 
           if (collectionId == null || collectionId.isEmpty) {
-            return ErrorScreen(
-              title: 'Collection Not Found', 
-              message: 'The collection ID is missing or invalid', 
-              showGoBackButton: true
+            return MaterialPage(
+              child: ErrorScreen(
+                title: 'Collection Not Found', 
+                message: 'The collection ID is missing or invalid', 
+                showGoBackButton: true
+              ),
             );
           }
 
-          return SingleCollectionScreen(collectionId: collectionId);
+          return AppTransitions.slideUptransition(
+            key: state.pageKey,
+            child: SingleCollectionScreen(collectionId: collectionId),
+            duration: Duration(milliseconds: 1500)
+          );
         }
+      ), 
+
+      GoRoute(
+        path: '/collections/:id/edit', 
+        name: 'edit-collection', 
+        builder: (context, state) {
+          final collection = state.extra as Collection;
+          return CollectionFormScreen(mode: CollectionFormMode.edit, existingCollection: collection);
+        },
+      ), 
+
+      GoRoute(
+        path: '/collections/:id/add-sentences', 
+        name: 'add-sentences',
+        builder: (context, state) {
+          final String collectionId = state.pathParameters['id']!;
+          final collection = state.extra as Collection;
+          return AddSentencesScreen(collectionId: collectionId, collection: collection);
+        },
       )
     ],
 
