@@ -4,6 +4,7 @@ import 'package:ai_lang_tutor_v2/providers/language_provider.dart';
 import 'package:ai_lang_tutor_v2/router/app_router.dart';
 import 'package:dart_openai/dart_openai.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -49,7 +50,11 @@ class MyApp extends StatelessWidget {
       ], 
       child: MaterialApp.router(
         title: 'AI Language Tutor',
-        theme: ThemeData(
+        theme: 
+        ThemeData(
+          textTheme: GoogleFonts.interTextTheme(
+              Theme.of(context).textTheme,
+            ),
           colorScheme: ColorScheme.dark(
             background: AppColors.darkBackground,
             primary: AppColors.electricBlue,

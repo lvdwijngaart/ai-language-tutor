@@ -44,10 +44,10 @@ class ErrorScreen extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: Colors.red.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Colors.red.withOpacity(0.3),
+                    color: Colors.red.withValues(alpha: 0.3),
                     width: 2,
                   ),
                 ),

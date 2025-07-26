@@ -177,8 +177,8 @@ class CollectionsScreen extends StatelessWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  const Color.fromARGB(255, 49, 206, 101).withOpacity(0.9),
-                  const Color.fromARGB(255, 58, 255, 183).withOpacity(0.9),
+                  const Color.fromARGB(255, 49, 206, 101).withValues(alpha: 0.9),
+                  const Color.fromARGB(255, 58, 255, 183).withValues(alpha: 0.9),
                 ],
               ),
               // color: AppColors.cardBackground,
@@ -217,7 +217,7 @@ class CollectionsScreen extends StatelessWidget {
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: AppColors.secondaryAccent.withOpacity(0.7),
+            color: AppColors.secondaryAccent.withValues(alpha: 0.7),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Row(
@@ -249,7 +249,7 @@ class CollectionsScreen extends StatelessWidget {
                     Text(
                       '$nrOfSentences sentences',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha: 0.7),
                         fontSize: 12,
                       ),
                     ),

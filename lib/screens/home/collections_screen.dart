@@ -152,20 +152,19 @@ class CollectionsScreen extends StatelessWidget {
               (collection) => _buildcollectionButton(
                 icon: collection.icon ?? Icons.star,
                 title: collection.title,
-                nrOfSentences: collection.nrOfSentences,
+                nrOfSentences: collection.nrOfSentences!,
                 onTap: () async {
                   final result = await context.push(
                     '/collections/${collection.id}/view',
                   );
-                  if (result == 'deleted') {
-                    final languageProvider = Provider.of<LanguageProvider>(
-                      context,
-                      listen: false,
-                    );
-                    collectionsProvider.refresh(
-                      languageProvider.selectedLanguage,
-                    );
-                  }
+                  // TODO: Possibly check for result? If nothing happened, don't need to refresh
+                  final languageProvider = Provider.of<LanguageProvider>(
+                    context,
+                    listen: false,
+                  );
+                  collectionsProvider.refresh(
+                    languageProvider.selectedLanguage,
+                  );
                 },
               ),
             ),
@@ -310,8 +309,18 @@ class CollectionsScreen extends StatelessWidget {
               (collection) => _buildcollectionButton(
                 icon: collection.icon ?? Icons.star,
                 title: collection.title,
-                nrOfSentences: collection.nrOfSentences,
-                onTap: () => context.push('/collections/${collection.id}/view'),
+                nrOfSentences: collection.nrOfSentences!,
+                onTap: () async {
+                  final result = await context.push('/collections/${collection.id}/view');
+                  // TODO: Possibly check for result? If nothing happened, don't need to refresh
+                  final languageProvider = Provider.of<LanguageProvider>(
+                    context,
+                    listen: false,
+                  );
+                  collectionsProvider.refresh(
+                    languageProvider.selectedLanguage,
+                  );
+                },
               ),
             ),
           ],
@@ -334,7 +343,7 @@ class CollectionsScreen extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
-              color: AppColors.secondaryAccent.withOpacity(0.7),
+              color: AppColors.secondaryAccent.withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -379,7 +388,7 @@ class CollectionsScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.secondaryAccent.withOpacity(0.3),
+                color: AppColors.secondaryAccent.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, color: AppColors.secondaryAccent, size: 22),
@@ -406,7 +415,7 @@ class CollectionsScreen extends StatelessWidget {
                   Text(
                     '$nrOfSentences sentences',
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white.withValues(alpha: 0.7),
                       fontSize: 12,
                     ),
                   ),

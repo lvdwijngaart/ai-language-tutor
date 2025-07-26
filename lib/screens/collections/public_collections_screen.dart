@@ -160,7 +160,7 @@ class _PublicCollectionScreenState extends State<PublicCollectionsScreen> {
                 _performSearch();
               },
               backgroundColor: Colors.transparent,
-              selectedColor: AppColors.secondaryAccent.withOpacity(0.9),
+              selectedColor: AppColors.secondaryAccent.withValues(alpha: 0.9),
               checkmarkColor: AppColors.darkBackground,
               side: BorderSide(
                 color: isSelected
@@ -279,12 +279,12 @@ class _PublicCollectionScreenState extends State<PublicCollectionsScreen> {
       shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(16),
       side: BorderSide(
-        color: isAdded ? AppColors.secondaryAccent.withOpacity(0.7) : Colors.transparent,
+        color: isAdded ? AppColors.secondaryAccent.withValues(alpha: 0.7) : Colors.transparent,
         width: isAdded ? 1 : 0,
       ),
       ),
       color: isAdded
-        ? AppColors.secondaryAccent.withOpacity(0.10)
+        ? AppColors.secondaryAccent.withValues(alpha: 0.10)
         : Theme.of(context).cardColor,
       child: ListTile(
       contentPadding: EdgeInsets.all(16),
@@ -326,7 +326,7 @@ class _PublicCollectionScreenState extends State<PublicCollectionsScreen> {
           Icon(
             Icons.quiz,
             size: 16,
-            color: AppColors.electricBlue.withOpacity(0.8),
+            color: AppColors.electricBlue.withValues(alpha: 0.8),
           ),
           SizedBox(width: 4),
           Text('${collection.nrOfSentences} sentences'),
@@ -334,7 +334,7 @@ class _PublicCollectionScreenState extends State<PublicCollectionsScreen> {
           Icon(
             Icons.favorite,
             size: 16,
-            color: Colors.red.withOpacity(0.8),
+            color: Colors.red.withValues(alpha: 0.8),
           ),
           SizedBox(width: 4),
           Text('${collection.saves} saves'),

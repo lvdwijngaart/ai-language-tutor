@@ -100,7 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: AppColors.cardBackground,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(color: AppColors.electricBlue.withOpacity(0.3)),
+                            side: BorderSide(color: AppColors.electricBlue.withValues(alpha: 0.3)),
                           ),
                           itemBuilder: (BuildContext popupMenuContext) => [
                             PopupMenuItem<String>(
@@ -212,7 +212,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Text(
                         'Practice with your AI language tutor',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                           fontSize: 14,
                         ),
                       ),
@@ -271,7 +271,7 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: BoxDecoration(
           color: AppColors.cardBackground,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: accentColor.withOpacity(0.3), width: 1),
+          border: Border.all(color: accentColor.withValues(alpha: 0.3), width: 1),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -279,7 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.2),
+                color: accentColor.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, color: accentColor, size: 24),
@@ -453,7 +453,7 @@ class _HomeScreenState extends State<HomeScreen> {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: AppColors.electricBlue.withOpacity(0.2),
+            color: AppColors.electricBlue.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: AppColors.electricBlue, size: 20),

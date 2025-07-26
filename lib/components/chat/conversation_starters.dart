@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 class ConversationStarters extends StatelessWidget{
   final ProficiencyLevel proficiencyLevel;
   final Function(String) onStarterTapped;
+  
 
   const ConversationStarters({
     super.key, 
@@ -16,7 +17,7 @@ class ConversationStarters extends StatelessWidget{
 
   @override 
   Widget build(BuildContext context) {
-    List<String> conversationStarters = ['Introduce myself', 'Order food at a restaurant'];
+    final List<String> conversationStarters = _getConversationStarters(proficiencyLevel);
 
     return Container(
       margin: EdgeInsets.only(top: 15, left: 45, bottom: 15),
@@ -53,9 +54,9 @@ class ConversationStarters extends StatelessWidget{
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: AppColors.electricBlue.withOpacity(0.15), 
+          color: AppColors.electricBlue.withValues(alpha: 0.15), 
           borderRadius: BorderRadius.circular(20), 
-          border: Border.all(color: AppColors.electricBlue.withOpacity(0.3), width: 1)
+          border: Border.all(color: AppColors.electricBlue.withValues(alpha: 0.3), width: 1)
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -78,5 +79,37 @@ class ConversationStarters extends StatelessWidget{
         ),
       ),
     );
+  }
+
+  List<String> _getConversationStarters(ProficiencyLevel proficiencyLevel) {
+    switch (proficiencyLevel) {
+      case ProficiencyLevel.beginner: 
+        return [
+          'Introduce myself',
+          'Order food at a restaurant', 
+          'Ask for directions',
+          'Talk about hobbies',
+          'Discuss the weather',
+        ];
+      
+      case ProficiencyLevel.intermediate: 
+        return [
+          'Plan a vacation',
+          'Discuss current events',
+          'Share opinions about movies',
+          'Talk about work/career',
+          'Describe cultural differences',
+        ];
+      
+      case ProficiencyLevel.advanced: 
+        return [
+          'Debate environmental issues',
+          'Analyze literature/philosophy',
+          'Discuss business strategies',
+          'Explore historical events',
+          'Express complex emotions',
+        ];
+      
+    }
   }
 }

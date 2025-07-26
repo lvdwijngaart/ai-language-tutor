@@ -1,5 +1,6 @@
 
 
+import 'package:ai_lang_tutor_v2/models/enums/app_enums.dart';
 import 'package:ai_lang_tutor_v2/models/other/chat_message.dart';
 import 'package:ai_lang_tutor_v2/models/other/sentence_analysis.dart';
 
@@ -22,6 +23,21 @@ class StandardChatMessages {
     timestamp: DateTime.now(),
   );
 
+  static ChatMessage changeLanguageMessage(Language newLanguage) {
+    return ChatMessage(
+      text: "Language changed to ${newLanguage.displayName} ${newLanguage.flagEmoji}. Let's continue our conversation!", 
+      isUserMessage: false, 
+      timestamp: DateTime.now()
+    );
+  }
+
+  static ChatMessage changeProficiencyLevel(ProficiencyLevel newLevel) {
+    return ChatMessage(
+      text: "Proficiency level updated to ${newLevel.displayName}. I'll adjust my teaching style accordingly!", 
+      isUserMessage: false, 
+      timestamp: DateTime.now()
+    );
+  }
 
 
   static ChatMessage testMessage = ChatMessage(

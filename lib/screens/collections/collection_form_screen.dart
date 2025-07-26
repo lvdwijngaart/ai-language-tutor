@@ -164,19 +164,14 @@ class _CollectionFormScreenState extends State<CollectionFormScreen> {
     });
 
     try {
-      Collection collection = Collection(
-        id: widget.existingCollection!.id,
-        title: _titleController.text.trim(), 
-        description: _descriptionController.text.trim(),
-        language: _language, 
-        isPublic: isPublic, 
-        icon: _selectedIcon,
-        createdAt: widget.existingCollection!.createdAt,
-        updatedAt: DateTime.now(), 
-        createdBy: widget.existingCollection!.createdBy,
-      );
+      Map<String, dynamic> updates = {
+        'title': _titleController.text.trim(), 
+        'description': _descriptionController.text.trim(), 
+        'is_public': isPublic, 
+        'icon': iconToString(_selectedIcon), 
+      };
 
-      final result = await CollectionsService.updateCollection(collection);
+      final result = await CollectionsService.updateCollection(widget.existingCollection!.id!, updates);
       
       if (mounted) {
         context.pop(
@@ -356,7 +351,7 @@ class _CollectionFormScreenState extends State<CollectionFormScreen> {
         Text(
           label + (isRequired ? '' : ' (Optional)'),
           style: TextStyle(
-            color: Colors.white.withOpacity(0.8),
+            color: Colors.white.withValues(alpha: 0.8),
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -464,7 +459,7 @@ class _CollectionFormScreenState extends State<CollectionFormScreen> {
         Text(
           'Choose an icon',
           style: TextStyle(
-            color: Colors.white.withOpacity(0.8),
+            color: Colors.white.withValues(alpha: 0.8),
             fontSize: 16,
             fontWeight: FontWeight.w500,
           ),
@@ -501,7 +496,7 @@ class _CollectionFormScreenState extends State<CollectionFormScreen> {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.secondaryAccent.withOpacity(0.9)
+              ? AppColors.secondaryAccent.withValues(alpha: 0.9)
               : AppColors.cardBackground,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
@@ -511,7 +506,7 @@ class _CollectionFormScreenState extends State<CollectionFormScreen> {
           boxShadow: [
             if (isSelected)
               BoxShadow(
-                color: AppColors.secondaryAccent.withOpacity(0.2),
+                color: AppColors.secondaryAccent.withValues(alpha: 0.2),
                 blurRadius: 8,
                 offset: Offset(0, 2),
               ),

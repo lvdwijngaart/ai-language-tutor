@@ -1,12 +1,13 @@
 import 'dart:convert';
 
 import 'package:ai_lang_tutor_v2/components/analysis/sentence_analysis_widget.dart';
-import 'package:ai_lang_tutor_v2/components/chat/chat_message_bubble.dart';
+import 'package:ai_lang_tutor_v2/components/chat/chat_bubbles/ai_message_chat_bubble.dart';
+import 'package:ai_lang_tutor_v2/components/chat/chat_bubbles/transcript_chat_bubble.dart';
+import 'package:ai_lang_tutor_v2/components/chat/chat_bubbles/loading_chat_bubble.dart';
+import 'package:ai_lang_tutor_v2/components/chat/chat_bubbles/user_chat_bubble.dart';
 import 'package:ai_lang_tutor_v2/components/chat/dropdowns.dart';
 import 'package:ai_lang_tutor_v2/components/chat/input_area.dart';
-import 'package:ai_lang_tutor_v2/components/chat/live_transcript_preview.dart';
-import 'package:ai_lang_tutor_v2/components/chat/loading_indicator.dart';
-import 'package:ai_lang_tutor_v2/components/chat/mic-transcipt/transcript_confirmation.dart';
+import 'package:ai_lang_tutor_v2/components/chat/transcript_confirmation.dart';
 import 'package:ai_lang_tutor_v2/constants/chat_constants.dart';
 import 'package:ai_lang_tutor_v2/models/other/ai_response.dart';
 import 'package:ai_lang_tutor_v2/models/other/chat_message.dart';
@@ -18,12 +19,10 @@ import 'package:ai_lang_tutor_v2/services/speech_to_text_service.dart';
 import 'package:ai_lang_tutor_v2/utils/logger.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:logger/logger.dart';
 import 'package:provider/provider.dart';
-import 'dart:developer';
-import '../../components/chat/conversation_starters.dart';
-import '../../constants/app_constants.dart' show AppColors, AppSpacing, AppTextStyles, cardBackground, secondaryAccent;
-import '../../models/enums/app_enums.dart' show Language, ProficiencyLevel;
+import 'package:ai_lang_tutor_v2/components/chat/conversation_starters.dart';
+import 'package:ai_lang_tutor_v2/constants/app_constants.dart' show AppColors, AppSpacing, AppTextStyles, cardBackground, errorColor, secondaryAccent;
+import 'package:ai_lang_tutor_v2/models/enums/app_enums.dart' show Language, ProficiencyLevel;
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key, this.isTestMode = false}); 
@@ -41,15 +40,15 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isLoading = false;
   bool _isSending = false;
   ProficiencyLevel _proficiencyLevel = ProficiencyLevel.intermediate; // Default proficiency level, change to configuration
-  // Language _targetLanguage = Language.spanish; // Default target language, change to configuration
+  
   Language get _targetLanguage {
     return Provider.of<LanguageProvider>(context, listen: false).selectedLanguage;
   }
 
   // Speech to text states
-  bool _speechEnabled = false; // Change based on configuration
-  bool _isListening = false; // Change based on speech recognition state
-  String _currentTranscript = ''; // Change based on speech recognition state
+  bool _speechEnabled = false; 
+  bool _isListening = false; 
+  String _currentTranscript = '';
 
   // When chat starts, show conversation starters
   bool _showConversationStarters = true; 
@@ -57,11 +56,8 @@ class _ChatScreenState extends State<ChatScreen> {
   @override 
   void initState() {
     super.initState();
-    _addInitialMessage(); // Add initial message to the chat
-    _initSpeech();
-
-    // Run diagnostic in debug mode
-
+    _addInitialMessage(); 
+    _initSpeech();  
   }
 
   @override
@@ -164,12 +160,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
     languageProvider.changeLanguage(newLanguage);
 
-    _messages.add(ChatMessage(
-      text: 'Changed the target language to ${newLanguage.displayName}', 
-      isUserMessage: false
-    ));
-
-    // Possibly add a snackbar here
+    _messages.add(StandardChatMessages.changeLanguageMessage(newLanguage));
 
     // Update the chat UI
     setState(() {});
@@ -182,13 +173,9 @@ class _ChatScreenState extends State<ChatScreen> {
       _proficiencyLevel = newLevel;
     });
 
-    _messages.add(ChatMessage(
-      text: 'Changed the proficiency level to ${newLevel.displayName}', 
-      isUserMessage: false
-    ));
-
-    // Possibly add a Snackbar here
-
+    _messages.add(StandardChatMessages.changeProficiencyLevel(newLevel));
+    
+    setState(() {});
     _scrollToBottom();
   }
 
@@ -218,11 +205,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // Show sentence analysis panel
   void _showSentenceAnalysis(SentenceAnalysis analysis, ChatMessage message) {
-    logger.i('Showing sentence analysis for: ${analysis.sentence}');
-    // Build analysis panel
-    // SentenceAnalysisWidget();
-
     if (!mounted) return;
+    logger.i('Showing sentence analysis for: ${analysis.sentence}');
 
     // Show analysis widget as bottom sheet
     showModalBottomSheet(
@@ -278,9 +262,8 @@ class _ChatScreenState extends State<ChatScreen> {
       _messageController.text = '';
     });
 
-    // Use default locale (let the system choose the best one)
+    // Use target languages localeCode
     String locale = _targetLanguage.localeCode; 
-    // String? locale; // Let the system choose the default locale
 
     bool success = await SpeechToTextService.startListening(
       // TODO: Consider adding support for multi locale understanding. 
@@ -351,11 +334,6 @@ class _ChatScreenState extends State<ChatScreen> {
     String messageText = customMessage ?? _messageController.text.trim();
     if (messageText.isEmpty) return;
 
-    // Hide conversation starters after first user message
-    setState(() {
-      _showConversationStarters = false;
-    });
-
     // Add user message
     ChatMessage userMessage = ChatMessage(
       text: messageText, 
@@ -370,32 +348,48 @@ class _ChatScreenState extends State<ChatScreen> {
       _messageController.clear();
     }
 
-    setState(() {});  // Used to rebuild the widget
+    // Get ready for AI request
+    setState(() {
+      _showConversationStarters = false;
+      _isLoading = true;
+    });
     _scrollToBottom();
 
-    // Get AI response
-    final AIResponse aiMessage = await AILanguageTutorService.sendMessage(
-      message: userMessage, 
-      conversationHistory: _messages, 
-      targetLanguage: _targetLanguage, 
-      proficiencyLevel: _proficiencyLevel, 
-      analyzeUserMessage: userAnalysis, 
-      onUserAnalysisReady: (userAnalysis) { 
-        userMessage.sentenceAnalyses = userAnalysis.aiMessage.sentenceAnalyses;
-        setState(() {});
-      },
-    );
-    logger.i(aiMessage.toString());
-    logger.i(jsonEncode(userMessage.toJson()));
-    _messages.add(aiMessage.aiMessage);
-    // _messages.add(ChatMessage(text: 'Total tokens: ' + aiMessage.totalTokens.toString(), isUserMessage: false));
-    setState(() {});
-    _scrollToBottom();
+    try {
+      // Get AI response
+      final AIResponse aiMessage = await AILanguageTutorService.sendMessage(
+        message: userMessage, 
+        conversationHistory: _messages, 
+        targetLanguage: _targetLanguage, 
+        proficiencyLevel: _proficiencyLevel, 
+        analyzeUserMessage: userAnalysis, 
+        onUserAnalysisReady: (userAnalysis) { 
+          userMessage.sentenceAnalyses = userAnalysis.aiMessage.sentenceAnalyses;
+          setState(() {});
+        },
+      );
+
+      logger.i(aiMessage.toString());
+      logger.i(jsonEncode(userMessage.toJson()));
+      _messages.add(aiMessage.aiMessage);
+      // _messages.add(ChatMessage(text: 'Total tokens: ' + aiMessage.totalTokens.toString(), isUserMessage: false));
+    } catch (e) {
+      logger.e('Error getting the AI\'s response');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to get the AI\'s response. Try again later'), 
+          backgroundColor: AppColors.errorColor,
+        )
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+      _scrollToBottom();
+    }
   }
 
   Future<void> _showTranscriptConfirmation(String transcript) async {
-    // TODO: Possibly handle the getting the AI analysis here
-
 
     final result = await showDialog<TranscriptConfirmationResult>(
       context: context,
@@ -552,14 +546,14 @@ class _ChatScreenState extends State<ChatScreen> {
                 logger.i('ListView building item $index');
                 
                 // Loading indicator
-                if (_isLoading && index == _messages.length + (_showConversationStarters ? 1 : 0) + (_isLoading ? 1 : 0)) {
-                  return const LoadingIndicator();
+                if (_isLoading && index == _messages.length + (_showConversationStarters ? 1 : 0) + (_isListening ? 1 : 0)) {
+                  return LoadingChatBubble();
                 }
 
                 // Live transcript preview
                 if (_isListening && 
                     index == _messages.length + (_showConversationStarters ? 1 : 0)) {
-                  return LiveTranscriptPreview(currentTranscript: _currentTranscript);
+                  return TranscriptChatBubble(currentTranscript: _currentTranscript);
                 }
 
                 // Conversation starters
@@ -572,10 +566,17 @@ class _ChatScreenState extends State<ChatScreen> {
 
                 // Regular chat messages
                 final message = _messages[index];
-                return ChatMessageBubble(
-                  message: message, 
-                  onSentenceTap: _showSentenceAnalysis,
-                );
+                if (message.isUserMessage) {
+                  return UserChatBubble(
+                    message: message, 
+                    onSentenceTap: _showSentenceAnalysis
+                  );
+                } else {
+                  return AIMessageChatBubble(
+                    message: message, 
+                    onSentenceTap: _showSentenceAnalysis,
+                  );
+                }
 
               }
             )

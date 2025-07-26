@@ -43,7 +43,7 @@ class IconStyles {
     return Container(
       padding: EdgeInsets.all(padding),
       decoration: BoxDecoration(
-        color: backgroundColor.withOpacity(0.3),
+        color: backgroundColor.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Icon(icon, color: iconColor, size: size),

@@ -4,20 +4,20 @@ class Profile {
   final String id;
   final String displayName;
   final String? avatarUrl;
-  final DateTime createdAt;
+  final DateTime? createdAt;
   final DateTime? updatedAt;
   final String? timezone;
-  final bool onboardingComplete;
+  final bool? onboardingComplete;
   final String? preferredUILang;
 
   Profile({
     required this.id, 
     required this.displayName, 
     this.avatarUrl, 
-    required this.createdAt, 
+    this.createdAt, 
     this.updatedAt, 
     this.timezone, 
-    required this.onboardingComplete, 
+    this.onboardingComplete, 
     this.preferredUILang
   });
 
@@ -73,7 +73,7 @@ class Profile {
       'id': id, 
       'display_name': displayName, 
       'avatar_url': avatarUrl, 
-      'created_at': createdAt.toIso8601String(), 
+      'created_at': createdAt?.toIso8601String(), 
       'updated_at': updatedAt?.toIso8601String(), 
       'timezone': timezone, 
       'onboarding_complete': onboardingComplete, 

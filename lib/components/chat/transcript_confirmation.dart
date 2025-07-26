@@ -61,7 +61,7 @@ class TranscriptConfirmationDialog extends StatelessWidget {
             decoration: BoxDecoration(
               color: const Color(0xFF3A3A3A), 
               borderRadius: BorderRadius.circular(8), 
-              border: Border.all(color: AppColors.electricBlue.withOpacity(0.3), width: 1), 
+              border: Border.all(color: AppColors.electricBlue.withValues(alpha: 0.3), width: 1), 
             ),
             child: Text(
               transcript, 
@@ -76,7 +76,7 @@ class TranscriptConfirmationDialog extends StatelessWidget {
           Text(
             'Send this message?', 
             style: TextStyle(
-              color: Colors.white.withOpacity(0.8), 
+              color: Colors.white.withValues(alpha: 0.8), 
               fontSize: 14
             ),
           )

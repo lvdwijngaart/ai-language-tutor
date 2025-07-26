@@ -31,7 +31,7 @@ class CompactLanguageSelector extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.electricBlue.withOpacity(0.3),
+                  color: AppColors.electricBlue.withValues(alpha: 0.3),
                   blurRadius: 8,
                   spreadRadius: 0,
                   offset: const Offset(0, 0),
@@ -88,7 +88,7 @@ class CompactLanguageSelector extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.cardBackground,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            border: Border.all(color: AppColors.electricBlue.withOpacity(0.3), width: 1),
+            border: Border.all(color: AppColors.electricBlue.withValues(alpha: 0.3), width: 1),
           ),
           child: Column(
             children: [
@@ -140,7 +140,7 @@ class CompactLanguageSelector extends StatelessWidget {
                         },
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         tileColor: isSelected 
-                            ? AppColors.electricBlue.withOpacity(0.1)
+                            ? AppColors.electricBlue.withValues(alpha: 0.1)
                             : AppColors.darkBackground,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -156,7 +156,7 @@ class CompactLanguageSelector extends StatelessWidget {
                           height: 40,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: AppColors.electricBlue.withOpacity(0.2),
+                            color: AppColors.electricBlue.withValues(alpha: 0.2),
                           ),
                           child: Center(
                             child: Text(

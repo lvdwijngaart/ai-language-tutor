@@ -1,4 +1,6 @@
 import 'package:ai_lang_tutor_v2/models/database/collection.dart';
+import 'package:ai_lang_tutor_v2/models/database/collection_with_creator.dart';
+import 'package:ai_lang_tutor_v2/models/database/profile.dart';
 import 'package:ai_lang_tutor_v2/models/database/sentence.dart';
 import 'package:ai_lang_tutor_v2/models/enums/app_enums.dart';
 import 'package:ai_lang_tutor_v2/services/supabase/collections/collections_service.dart';
@@ -155,6 +157,7 @@ class CollectionsProvider extends ChangeNotifier {
   // Single collection state
   Collection? _selectedCollection;
   List<Sentence> _collectionSentences = [];
+  Profile? _collectionCreator;
   bool _isLoadingCollection = false;
   String? _collectionError;
   
@@ -173,6 +176,7 @@ class CollectionsProvider extends ChangeNotifier {
     notifyListeners();
   }
   List<Sentence> get collectionSentences => _collectionSentences;
+  Profile? get collectionCreator => _collectionCreator;
   bool get isLoadingCollection => _isLoadingCollection;
   String? get collectionError => _collectionError;
 
@@ -264,8 +268,10 @@ class CollectionsProvider extends ChangeNotifier {
 
     try {
       // Load collection details
-      final collection = await CollectionsService.getCollectionById(collectionId);
-      _selectedCollection = collection;
+      final CollectionWithCreator collectionWithCreator = await CollectionsService.getCollectionById(collectionId);
+      _selectedCollection = collectionWithCreator.collection;
+      _collectionCreator = collectionWithCreator.creator;
+
 
       // Load sentences for this collection
       final sentences = await SentencesService.getSentencesByCollectionId(
@@ -274,12 +280,13 @@ class CollectionsProvider extends ChangeNotifier {
       _collectionSentences = sentences;
 
       _collectionError = null;
-      logger.i('Single collection loaded: ${collection.title} with ${sentences.length} sentences');
+      logger.i('Single collection loaded: ${collectionWithCreator.collection.title} with ${sentences.length} sentences');
 
     } catch (e) {
       _collectionError = e.toString();
       _selectedCollection = null;
       _collectionSentences = [];
+      _collectionCreator = null;
       logger.e('Error loading single collection: $e');
     } finally {
       _isLoadingCollection = false;
@@ -319,6 +326,7 @@ class CollectionsProvider extends ChangeNotifier {
   void clearSingleCollection() {
     _selectedCollection = null;
     _collectionSentences = [];
+    _collectionCreator = null;
     _collectionError = null;
     _isLoadingCollection = false;
     notifyListeners();

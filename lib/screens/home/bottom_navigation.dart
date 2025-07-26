@@ -6,6 +6,7 @@ import 'package:ai_lang_tutor_v2/providers/language_provider.dart';
 import 'package:ai_lang_tutor_v2/screens/home/collections_screen.dart';
 import 'package:ai_lang_tutor_v2/screens/home/home_screen.dart';
 import 'package:ai_lang_tutor_v2/screens/home/practice_screen.dart';
+import 'package:ai_lang_tutor_v2/screens/placeholder_screen.dart';
 import 'package:ai_lang_tutor_v2/services/supabase/collections/collections_service.dart';
 import 'package:ai_lang_tutor_v2/services/supabase_client.dart';
 import 'package:flutter/material.dart';
@@ -65,8 +66,10 @@ class _BottomNavigationState extends State<BottomNavigation> {
         final List<Widget> screens = [
           HomeScreen(),
           CollectionsScreen(),
-          PracticeScreen(),
-          HomeScreen(),
+          // PracticeScreen(),
+          PlaceholderScreen(title: 'Practice', icon: Icons.quiz, color: const Color(0xFFFFB800)),
+          // HomeScreen(),
+          PlaceholderScreen(title: 'Social', icon: Icons.people, color: const Color(0xFF6C5CE7 ))
         ];
 
         return Scaffold(
@@ -78,8 +81,8 @@ class _BottomNavigationState extends State<BottomNavigation> {
                 _selectedIndex = index;
               });
             },
-            physics:
-                const NeverScrollableScrollPhysics(), // Prevent swipe if you want only nav bar control
+            // Prevent swipe if you want only nav bar control:
+            // physics: const NeverScrollableScrollPhysics(), 
             children: screens,
           ),
           bottomNavigationBar: Container(
@@ -87,7 +90,7 @@ class _BottomNavigationState extends State<BottomNavigation> {
               color: AppColors.cardBackground,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   blurRadius: 10,
                   offset: const Offset(0, -2),
                 ),

@@ -1,23 +1,31 @@
 import 'package:ai_lang_tutor_v2/models/database/collection_save.dart';
 import 'package:ai_lang_tutor_v2/services/supabase_client.dart';
+import 'package:ai_lang_tutor_v2/utils/logger.dart';
 
 class CollectionsSaveService {
+
+  /// Get Collections for user [userId]
   static Future<List<String>> getCollectionIdsByUser({
     required String userId,
   }) async {
-    final savesResult = await supabase
-        .from('collection_saves')
-        .select('collection_id')
-        .eq('user_id', userId);
+    try {
+      final savesResult = await supabase
+          .from('collection_saves')
+          .select('collection_id')
+          .eq('user_id', userId);
 
-    final List<String> collectionIds = (savesResult as List)
-        .map((row) => row['collection_id'] as String)
-        .toList();
+      final List<String> collectionIds = (savesResult as List)
+          .map((row) => row['collection_id'] as String)
+          .toList();
 
-    return collectionIds;
+      return collectionIds;
+    } catch (e) {
+      logger.e('Error while getting collectionIds for user $userId: $e');
+      throw Exception('Failed to get the collections saved by user: $e');
+    }
   }
 
-  // TODO: add 1 to collection.saves
+  /// Save collection [collectionId] to user [userId]
   static Future<bool> createCollectionSave({
     required String userId,
     required String collectionId,
@@ -38,20 +46,19 @@ class CollectionsSaveService {
           'Something went wrong during adding the CollectionSave. Result is empty',
         );
       }
-
-      await supabase.rpc(
-        'increment_collection_saves',
-        params: {'collection_id': collectionId},
-      );
+      
+      _incrementCollectionSaves(collectionId);
 
       return true;
     } catch (e) {
+      logger.e('Error while saving collection $collectionId to user $userId: $e');
       throw Exception(
-        'Something went wrong during inserting the CollectionSave: $e',
+        'Something went wrong while inserting the CollectionSave: $e',
       );
     }
   }
 
+  /// Delete collection save relation between [userId] and [collectionId]
   static Future<bool> deleteCollectionSave({
     required String userId,
     required String collectionId,
@@ -70,17 +77,40 @@ class CollectionsSaveService {
           'No collection save found to delete or delete operation failed',
         );
       }
+      
+      _decrementCollectionSaves(collectionId);
 
+      return true;
+    } catch (e) {
+      logger.e('Error while deleting collectionSave between $collectionId and $userId: $e');
+      throw Exception(
+        'Something went wrong during deleting the CollectionSave: $e',
+      );
+    }
+  }
+
+
+  // HELPER METHODS: 
+
+  static Future<void> _incrementCollectionSaves(String collectionId) async {
+    try {
+      await supabase.rpc(
+        'increment_collection_saves',
+        params: {'collection_id': collectionId},
+      );
+    } catch (e) {
+      logger.e('Error while incrementing collection.saves for $collectionId: $e');
+    }
+  }
+
+  static Future<void> _decrementCollectionSaves(String collectionId) async {
+    try {
       await supabase.rpc(
         'decrement_collection_saves',
         params: {'collection_id': collectionId},
       );
-
-      return true;
     } catch (e) {
-      throw Exception(
-        'Something went wrong during deleting the CollectionSave: $e',
-      );
+      logger.e('Error while incrementing collection.saves for $collectionId: $e');
     }
   }
 }

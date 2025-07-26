@@ -1,7 +1,9 @@
+import 'package:ai_lang_tutor_v2/components/sentences/edit_sentence_dialogue.dart';
 import 'package:ai_lang_tutor_v2/constants/app_constants.dart';
 import 'package:ai_lang_tutor_v2/models/database/collection.dart';
 import 'package:ai_lang_tutor_v2/models/database/sentence.dart';
 import 'package:ai_lang_tutor_v2/providers/collections_provider.dart';
+import 'package:ai_lang_tutor_v2/providers/language_provider.dart';
 import 'package:ai_lang_tutor_v2/screens/collections/collection_form_screen.dart';
 import 'package:ai_lang_tutor_v2/screens/error_screen.dart';
 import 'package:ai_lang_tutor_v2/services/supabase/collections/collections_service.dart';
@@ -19,8 +21,7 @@ import 'package:provider/provider.dart';
 class SingleCollectionScreen extends StatefulWidget {
   final String collectionId;
 
-  const SingleCollectionScreen({Key? key, required this.collectionId})
-    : super(key: key);
+  const SingleCollectionScreen({super.key, required this.collectionId});
 
   @override
   State<SingleCollectionScreen> createState() => _SingleCollectionScreenState();
@@ -44,7 +45,9 @@ class _SingleCollectionScreenState extends State<SingleCollectionScreen>
   void initState() {
     super.initState();
     _setupAnimations();
-    _loadCollectionData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadCollectionData();
+    });
   }
 
   void _setupAnimations() {
@@ -240,7 +243,7 @@ class _SingleCollectionScreenState extends State<SingleCollectionScreen>
               Container(
                 padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.secondaryAccent.withOpacity(0.2),
+                  color: AppColors.secondaryAccent.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(
@@ -323,7 +326,7 @@ class _SingleCollectionScreenState extends State<SingleCollectionScreen>
                   label: collection.isPublic ? 'Public' : 'Private',
                   value: isUserCollection
                       ? 'You'
-                      : (collection.profile?['display_name'] as String?) ??
+                      : (collectionsProvider.collectionCreator!.displayName as String?) ??
                             'Anonymous',
                   color: collection.isPublic ? Colors.green : Colors.orange,
                 ),
@@ -346,7 +349,7 @@ class _SingleCollectionScreenState extends State<SingleCollectionScreen>
       decoration: BoxDecoration(
         color: AppColors.cardBackground,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
@@ -446,7 +449,7 @@ class _SingleCollectionScreenState extends State<SingleCollectionScreen>
                 label: Text(_isSaving ? 'Removing...' : 'Un-save Collection'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _isSaving
-                      ? Colors.orange.withOpacity(0.6)
+                      ? Colors.orange.withValues(alpha: 0.6)
                       : Colors.orange,
                   foregroundColor: Colors.white,
                   padding: EdgeInsets.symmetric(vertical: 16),
@@ -475,7 +478,7 @@ class _SingleCollectionScreenState extends State<SingleCollectionScreen>
                 label: Text(_isSaving ? 'Saving...' : 'Save Collection'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _isSaving
-                      ? AppColors.secondaryAccent.withOpacity(0.6)
+                      ? AppColors.secondaryAccent.withValues(alpha: 0.6)
                       : AppColors.secondaryAccent,
                   foregroundColor: Colors.white,
                   padding: EdgeInsets.symmetric(vertical: 16),
@@ -745,60 +748,79 @@ class _SingleCollectionScreenState extends State<SingleCollectionScreen>
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(color: Colors.white12),
         ),
-        child: ExpansionTile(
-          tilePadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          childrenPadding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-          leading: CircleAvatar(
-            backgroundColor: AppColors.electricBlue.withOpacity(0.2),
-            child: Text(
-              '${index + 1}',
-              style: TextStyle(
-                color: AppColors.electricBlue,
-                fontWeight: FontWeight.bold,
+        child: Theme(
+          data: Theme.of(context).copyWith(
+            dividerColor: Colors.transparent,
+            expansionTileTheme: ExpansionTileThemeData(
+              backgroundColor: Colors.transparent,
+              collapsedBackgroundColor: Colors.transparent,
+              iconColor: Colors.white70,
+              collapsedIconColor: Colors.white70,
+              textColor: Colors.white,
+              collapsedTextColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              collapsedShape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
           ),
-          title: printClozeSentence(sentence: sentence, showAsBlank: false),
-          subtitle: Text(
-            sentence.translation,
-            style: TextStyle(color: Colors.white70, fontSize: 14),
-          ),
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton.icon(
-                    onPressed: () => _copySentence(sentence.text),
-                    icon: Icon(Icons.copy, size: 16),
-                    label: Text('Copy'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.electricBlue,
-                    ),
-                  ),
+          child: ExpansionTile(
+            tilePadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            childrenPadding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+            leading: CircleAvatar(
+              backgroundColor: AppColors.electricBlue.withValues(alpha: 0.2),
+              child: Text(
+                '${index + 1}',
+                style: TextStyle(
+                  color: AppColors.electricBlue,
+                  fontWeight: FontWeight.bold,
                 ),
-                Expanded(
-                  child: TextButton.icon(
-                    onPressed: () => _editSentence(sentence),
-                    icon: Icon(Icons.edit, size: 16),
-                    label: Text('Edit'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.secondaryAccent,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: TextButton.icon(
-                    onPressed: () => _deleteSentence(sentence),
-                    icon: Icon(Icons.delete, size: 16),
-                    label: Text('Delete'),
-                    style: TextButton.styleFrom(foregroundColor: Colors.red),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ],
+            title: printClozeSentence(sentence: sentence, showAsBlank: false),
+            subtitle: Text(
+              sentence.translation,
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton.icon(
+                      onPressed: () => _copySentence(sentence.text),
+                      icon: Icon(Icons.copy, size: 16),
+                      label: Text('Copy'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.electricBlue,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: TextButton.icon(
+                      onPressed: () => _editSentence(sentence),
+                      icon: Icon(Icons.edit, size: 16),
+                      label: Text('Edit'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.secondaryAccent,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: TextButton.icon(
+                      onPressed: () => _deleteSentence(sentence),
+                      icon: Icon(Icons.delete, size: 16),
+                      label: Text('Delete'),
+                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
+      )
     );
   }
 
@@ -888,14 +910,16 @@ class _SingleCollectionScreenState extends State<SingleCollectionScreen>
         context.pop('deleted');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Something went wrong while deleting your colleciton. Refresh and try again. ',
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Something went wrong while deleting your colleciton. Refresh and try again. ',
+            ),
+            backgroundColor: AppColors.errorColor,
           ),
-          backgroundColor: AppColors.errorColor,
-        ),
-      );
+        );
+      }
     }
   }
 
@@ -909,15 +933,29 @@ class _SingleCollectionScreenState extends State<SingleCollectionScreen>
     );
   }
 
-  void _editSentence(Sentence sentence) {
-    // TODO: Navigate to edit sentence screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Edit sentence feature coming soon!')),
-    );
+  void _editSentence(Sentence sentence) async {
+    final CollectionsProvider collectionsProvider = Provider.of<CollectionsProvider>(context, listen: false);
+
+    // TODO: dialogue for editing the sentence
+    final result = await EditSentenceDialogue.show(context: context, sentence: sentence);
+     
+    if (result == false) {
+      return;
+    } else {
+      // TODO: Possibly use an update function?
+      collectionsProvider.loadSingleCollection(widget.collectionId);
+    }
   }
 
   void _deleteSentence(Sentence sentence) async {
-    // TODO Confirmation dialogue
+    final choice = await DeleteConfirmationDialog.show(
+      context: context,
+      title: 'Delete sentence?', 
+      message: 'This action can\'t be undone. Are you sure? '
+    );
+    if (choice == false) {
+      return;
+    }
 
     try {
       final success = await CollectionSentencesService.removeSentenceFromCollection(sentenceId: sentence.id!, collectionId: widget.collectionId);

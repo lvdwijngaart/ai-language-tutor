@@ -1,4 +1,5 @@
 import 'package:ai_lang_tutor_v2/models/database/collection.dart';
+import 'package:ai_lang_tutor_v2/models/database/collection_with_creator.dart';
 import 'package:ai_lang_tutor_v2/models/enums/app_enums.dart';
 import 'package:ai_lang_tutor_v2/services/supabase/collections/collections_save_service.dart';
 import 'package:ai_lang_tutor_v2/services/supabase_client.dart';
@@ -6,45 +7,63 @@ import 'package:ai_lang_tutor_v2/utils/logger.dart';
 
 class CollectionsService {
 
+  static final String _table = 'collections';
+  static final String _linkingTable = 'collection_saves';
+
+  /// Get personal collections for language [language] that are saved to user [userId]
   static Future<List<Collection>> getPersonalCollections({
     required String userId,
     required Language language,
   }) async {
-    // Get collectionIds for this user
-    final List<String> collectionIds =
-        await CollectionsSaveService.getCollectionIdsByUser(userId: userId);
-    if (collectionIds.isEmpty) return [];
-
-    // Get collections by IDs
-    final collections = await supabase
-        .from('collections')
-        .select()
-        .eq('language', language.name)
-        .eq('created_by', userId)
-        .inFilter('id', collectionIds);
-
-    return (collections as List).map((row) => Collection.fromMap(row)).toList();
+    try {
+      final collections = await supabase
+          .from(_table)
+          .select('''
+            *,
+            $_linkingTable!inner(
+              user_id,
+              created_at
+            )
+          ''')
+          .eq('language', language.name)
+          .eq('created_by', userId)
+          .eq('$_linkingTable.user_id', userId)
+          // TODO: order by linkingTables' last_played, so that the collection that user last played is first?
+          .order('created_at', ascending: false);   
+      
+      return (collections as List).map((row) => Collection.fromMap(row)).toList();
+    } catch (e) {
+      logger.e('Error getting personal collections for ${language.displayName} for user $userId: $e');
+      return [];
+    }
   }
 
+  /// Get public collections for [language] saved to [userId]
   static Future<List<Collection>> getPublicCollections({
     required String userId,
     required Language language,
   }) async {
-    // Get collectionIds for this user
-    final List<String> collectionIds =
-        await CollectionsSaveService.getCollectionIdsByUser(userId: userId);
-    if (collectionIds.isEmpty) return [];
-
-    // Get collections by IDs
-    final collections = await supabase
-        .from('collections')
-        .select()
-        .eq('is_public', true)
-        .eq('language', language.name)
-        .neq('created_by', userId)
-        .inFilter('id', collectionIds);
-
-    return (collections as List).map((row) => Collection.fromMap(row)).toList();
+    try {
+      final collections = await supabase
+          .from(_table)
+          .select('''
+            *,
+            $_linkingTable!inner(
+              user_id,
+              created_at
+            )
+          ''')
+          .eq('language', language.name)
+          .neq('created_by', userId)
+          .eq('$_linkingTable.user_id', userId)
+          // TODO: order by linkingTables' last_played, so that the collection that user last played is first?
+          .order('created_at', ascending: false);   
+      
+      return (collections as List).map((row) => Collection.fromMap(row)).toList();
+    } catch (e) {
+      logger.e('Error while getting public collections for ${language.displayName} to user $userId: $e');
+      return [];
+    }
   }
 
   static Future<Collection> createNewCollection({
@@ -160,34 +179,35 @@ class CollectionsService {
     }
   }
 
-  // Get single collection by ID
-  static Future<Collection> getCollectionById(String id) async {
+  /// Get single collection by [id]
+  static Future<CollectionWithCreator> getCollectionById(String id) async {
     try {
       final result = await supabase
           .from('collections')
-          .select('*, profiles!collections_created_by_fkey(display_name, avatar_url)')
+          .select('*, profiles!collections_created_by_fkey(id, display_name, avatar_url)')
           .eq('id', id)
           .single(); // Get single record
 
-      return Collection.fromMap(result);
+      return CollectionWithCreator.fromMap(result);
     } catch (e) {
       throw Exception('Error getting collection: $e');
     }
   }
 
-  static Future<Collection> updateCollection(Collection collection) async {
+  /// Update collection by [collectionId], updating key-value pairs [updates]
+  static Future<Collection> updateCollection(String collectionId, Map<String, dynamic> updates) async {
     try {
       final result = await supabase
         .from('collections')
-        .update(collection.toMap())
-        .eq('id', collection.id!)
+        .update(updates)
+        .eq('id', collectionId)
         .select()
         .single();
 
       return Collection.fromMap(result);
       
     } catch (e) {
-      throw Exception('Error while editing collection by id ${collection.id}: $e');
+      throw Exception('Error while editing collection by id $collectionId: $e');
     }
   }
 }

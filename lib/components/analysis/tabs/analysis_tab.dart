@@ -5,9 +5,10 @@ import 'package:ai_lang_tutor_v2/models/other/sentence_analysis.dart';
 import 'package:flutter/material.dart';
 
 class AnalysisTab extends StatelessWidget {
-  SentenceAnalysis sentenceAnalysis;
+  final SentenceAnalysis sentenceAnalysis;
 
-  AnalysisTab({
+  const AnalysisTab({
+    super.key,
     required this.sentenceAnalysis
   });
 
@@ -33,10 +34,8 @@ class AnalysisTab extends StatelessWidget {
               style: const TextStyle(color: Colors.white, fontSize: 16),
             ),
           ),
-
           const SizedBox(height: 20),
 
-          // TODO: Build sections
           _buildSection(
             title: 'Meaning in Context',
             icon: Icons.lightbulb_outline,
@@ -79,10 +78,10 @@ class AnalysisTab extends StatelessWidget {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.1),
+                          color: Colors.green.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: Colors.green.withOpacity(0.3),
+                            color: Colors.green.withValues(alpha: 0.3),
                           ),
                         ),
                         child: Text(
@@ -138,9 +137,9 @@ class AnalysisTab extends StatelessWidget {
       margin: const EdgeInsets.only(right: 12),
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.1),
+        color: Colors.blue.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

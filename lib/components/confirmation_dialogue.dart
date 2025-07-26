@@ -40,7 +40,7 @@ class ConfirmationDialog extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: (confirmColor ?? AppColors.electricBlue).withOpacity(0.2),
+                  color: (confirmColor ?? AppColors.electricBlue).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(50),
                 ),
                 child: Icon(
@@ -93,7 +93,7 @@ class ConfirmationDialog extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                         side: BorderSide(
-                          color: Colors.white.withOpacity(0.3),
+                          color: Colors.white.withValues(alpha: 0.3),
                         ),
                       ),
                     ),

@@ -23,13 +23,13 @@ class LiveTranscriptIndicator extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Colors.red.withOpacity(0.1),
-            Colors.red.withOpacity(0.05),
+            Colors.red.withValues(alpha: 0.1),
+            Colors.red.withValues(alpha: 0.05),
           ],
         ),
         border: Border(
           bottom: BorderSide(
-            color: Colors.red.withOpacity(0.3), 
+            color: Colors.red.withValues(alpha: 0.3), 
             width: 2,
           ),
         ),

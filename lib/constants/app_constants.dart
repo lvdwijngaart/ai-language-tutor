@@ -47,7 +47,7 @@ class AppTextStyles {
   
   static TextStyle caption = TextStyle(
     fontSize: 14,
-    color: AppColors.primaryText.withOpacity(0.7),
+    color: AppColors.primaryText.withValues(alpha: 0.7),
   );
   
   static const TextStyle button = TextStyle(

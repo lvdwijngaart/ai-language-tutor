@@ -3,6 +3,7 @@
 // Enum for word states
 import 'package:ai_lang_tutor_v2/constants/app_constants.dart';
 import 'package:ai_lang_tutor_v2/models/enums/app_enums.dart';
+import 'package:ai_lang_tutor_v2/utils/logger.dart';
 import 'package:flutter/material.dart';
 
 enum WordState {
@@ -33,12 +34,16 @@ class ClozeSelectionWidget extends StatefulWidget {
   final String text;
   final Function(Set<int>, List<String>, int? startChar, int? endChar) onSelectionChanged;
   final Color boxColor;
+  int? initialStartChar;
+  int? initialEndChar;
 
-  const ClozeSelectionWidget({
+  ClozeSelectionWidget({
     super.key,
     required this.text, 
     required this.onSelectionChanged, 
-    this.boxColor = AppColors.darkBackground
+    this.boxColor = AppColors.darkBackground, 
+    this.initialStartChar, 
+    this.initialEndChar
   });
 
   @override
@@ -197,11 +202,16 @@ class _ClozeSelectionWidgetState extends State<ClozeSelectionWidget> {
       } else {
         _extendSelection(index);
       }
+      logger.i(_selectedWordIndices.length);
     });
     
     // Calculate character positions and notify parent
-    final positions = _calculateCharacterPositions();
-    widget.onSelectionChanged(_selectedWordIndices, _words, positions['startChar'], positions['endChar']);
+    if (_selectedWordIndices.isEmpty) {
+      widget.onSelectionChanged(_selectedWordIndices, _words, null, null);
+    } else {
+      final positions = _calculateCharacterPositions();
+      widget.onSelectionChanged(_selectedWordIndices, _words, positions['startChar'], positions['endChar']);
+    }
   }
 
   Map<String, int?> _calculateCharacterPositions() {
@@ -275,10 +285,10 @@ class _ClozeSelectionWidgetState extends State<ClozeSelectionWidget> {
         return AppColors.electricBlue;
       
       case WordState.selectable: 
-        return AppColors.cardBackground.withOpacity(0.8);
+        return AppColors.cardBackground.withValues(alpha: 0.8);
 
       case WordState.unselected: 
-        return AppColors.cardBackground.withOpacity(0.3);
+        return AppColors.cardBackground.withValues(alpha: 0.3);
     }
   }
 

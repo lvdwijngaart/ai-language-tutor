@@ -34,6 +34,7 @@ class AiSentenceGenerationService {
     return parsedResponse;
   }
 
+  // TODO: Still sometimes does not include the cloze word
   static String _generatePrompt( Collection collection, List<Sentence> sentences, int nrOfSentences) {
     final bool isEmptyArray = sentences.isEmpty;
 

@@ -255,7 +255,7 @@ class _SentenceSuggestionState extends State<SentenceSuggestions> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.cardBackground,
-                      foregroundColor: Colors.white.withOpacity(0.8),
+                      foregroundColor: Colors.white.withValues(alpha: 0.8),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadiusGeometry.circular(10)
                       )
@@ -366,11 +366,11 @@ class _SentenceSuggestionState extends State<SentenceSuggestions> {
     Color textColor;
 
     if (isAdded) {
-      cardColor = AppColors.secondaryAccent.withOpacity(0.07);
-      borderColor = AppColors.secondaryAccent.withOpacity(0.4);
+      cardColor = AppColors.secondaryAccent.withValues(alpha: 0.07);
+      borderColor = AppColors.secondaryAccent.withValues(alpha: 0.4);
       textColor = Colors.white;
     } else if (_sentences.contains(sentence)) {
-      cardColor = Colors.grey.withOpacity(0.15);
+      cardColor = Colors.grey.withValues(alpha: 0.15);
       borderColor = Colors.transparent;
       textColor = const Color.fromARGB(255, 156, 152, 152);
     } else {
@@ -407,7 +407,7 @@ class _SentenceSuggestionState extends State<SentenceSuggestions> {
               Text(
                 sentence.translation, 
                 style: TextStyle(
-                  color: textColor.withOpacity(0.7), 
+                  color: textColor.withValues(alpha: 0.7), 
                   fontSize: 15,
                 ),
               ), 
@@ -470,10 +470,10 @@ class _SentenceSuggestionState extends State<SentenceSuggestions> {
               Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1), 
+                  color: Colors.orange.withValues(alpha: 0.1), 
                   borderRadius: BorderRadius.circular(8), 
                   border: Border.all(
-                    color: Colors.orange.withOpacity(0.3)
+                    color: Colors.orange.withValues(alpha: 0.3)
                   )
                 ),
                 child: Row(

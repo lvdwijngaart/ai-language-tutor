@@ -33,7 +33,7 @@ class TutorChatDropdown<T> extends StatelessWidget {
       margin: const EdgeInsets.only(right: AppSpacing.small), 
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), 
       decoration: BoxDecoration(
-        color: accentColor.withOpacity(0.2), 
+        color: accentColor.withValues(alpha: 0.2), 
         borderRadius: BorderRadius.circular(20), 
         border: Border.all(color: accentColor, width: 1)
       ), 

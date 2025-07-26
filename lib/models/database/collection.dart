@@ -11,8 +11,8 @@ class Collection {
   final String? description;
   final Language language;
   final bool isPublic;
-  final int nrOfSentences;
-  final int saves;
+  final int? nrOfSentences;
+  final int? saves;
   final IconData? icon;
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -27,8 +27,8 @@ class Collection {
     this.description,
     required this.language,
     required this.isPublic,
-    this.nrOfSentences = 0,
-    this.saves = 0,
+    this.nrOfSentences,
+    this.saves,
     this.icon,
     required this.createdAt,
     this.updatedAt,

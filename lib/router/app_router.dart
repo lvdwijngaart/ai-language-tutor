@@ -1,9 +1,12 @@
 import 'package:ai_lang_tutor_v2/constants/app_transitions.dart';
 import 'package:ai_lang_tutor_v2/models/database/collection.dart';
+import 'package:ai_lang_tutor_v2/models/database/sentence.dart';
+import 'package:ai_lang_tutor_v2/screens/auth/new_password_screen.dart';
 import 'package:ai_lang_tutor_v2/screens/collections/collection_form_screen.dart';
 import 'package:ai_lang_tutor_v2/screens/collections/public_collections_screen.dart';
-import 'package:ai_lang_tutor_v2/screens/collections/sentence_screen.dart';
+import 'package:ai_lang_tutor_v2/screens/collections/sentences/sentence_screen.dart';
 import 'package:ai_lang_tutor_v2/screens/collections/sentence_suggestions.dart';
+import 'package:ai_lang_tutor_v2/screens/collections/sentences/sentence_screen_tabs/custom_sentence_tab.dart';
 import 'package:ai_lang_tutor_v2/screens/collections/single_collection_screen.dart';
 import 'package:ai_lang_tutor_v2/screens/error_screen.dart';
 import 'package:ai_lang_tutor_v2/screens/home/bottom_navigation.dart';
@@ -70,18 +73,18 @@ class AppRouter {
         name: 'reset-password',
         builder: (context, state) => const ResetPasswordScreen(),
       ),
-      // GoRoute(
-      //   path: '/auth/new-password',
-      //   name: 'new-password',
-      //   builder: (context, state) {
-      //     final accessToken = state.uri.queryParameters['access_token'];
-      //     final refreshToken = state.uri.queryParameters['refresh_token'];
-      //     return NewPasswordScreen(
-      //       accessToken: accessToken,
-      //       refreshToken: refreshToken,
-      //     );
-      //   },
-      // ),
+      GoRoute(
+        path: '/auth/new-password',
+        name: 'new-password',
+        builder: (context, state) {
+          final accessToken = state.uri.queryParameters['access_token'];
+          final refreshToken = state.uri.queryParameters['refresh_token'];
+          return NewPasswordScreen(
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+          );
+        },
+      ),
 
       // Main app routes
       GoRoute(
@@ -179,7 +182,7 @@ class AppRouter {
           final collection = state.extra as Collection;
           return AddSentencesScreen(collectionId: collectionId, collection: collection);
         },
-      )
+      ),
     ],
 
     // Error page

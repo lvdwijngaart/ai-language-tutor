@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 class AIAvatar extends StatelessWidget {
   const AIAvatar({super.key});
 
-  
   @override
   Widget build(BuildContext context) {
     return Container(
